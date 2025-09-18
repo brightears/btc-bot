@@ -1,0 +1,28 @@
+# Python venv and caches
+.venv/
+__pycache__/
+*.py[cod]
+
+# OS artifacts
+.DS_Store
+
+# Project secrets and runtime state
+.env
+.env.*
+!.env.sample
+logs/
+logs
+state.json
+.cache/
+
+# Build artifacts
+*.egg-info/
+
+# Editor configs
+.vscode/
+.idea/
+
+# Local testing outputs
+.coverage
+pytest_cache/
+

@@ -1,0 +1,11 @@
+symbol: "BTC/USDT"
+notional_usdt: 100
+threshold_bps: 0.5
+loop_seconds: 300
+maker_only: true
+leverage: 1
+fee_bps: 7
+slippage_bps: 2
+whitelist_symbols:
+  - "BTC/USDT"
+log_level: "INFO"
