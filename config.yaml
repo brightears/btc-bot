@@ -1,11 +1,25 @@
+# BTC Funding-Carry Bot Configuration
+
+# Trading parameters
 symbol: "BTC/USDT"
 notional_usdt: 100
 threshold_bps: 0.5
 loop_seconds: 300
 maker_only: true
 leverage: 1
+
+# Cost model
 fee_bps: 7
 slippage_bps: 2
+
+# Risk parameters
 whitelist_symbols:
   - "BTC/USDT"
+max_notional_usdt: 10000
+min_notional_usdt: 10
+max_leverage: 3
+max_positions: 1
+min_edge_bps: 0
+
+# System
 log_level: "INFO"

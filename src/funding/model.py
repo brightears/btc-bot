@@ -1,62 +1,146 @@
-"""Pure funding model helpers."""
-
-from __future__ import annotations
-
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Optional
-
-from utils.time import as_utc, funding_window_bounds
-
-BASIS_POINT = 1 / 10000
+from datetime import datetime
+from typing import Optional, Dict, Any
 
 
 @dataclass
-class FundingWindow:
-    start: datetime
-    end: datetime
+class FundingOpportunity:
+    symbol: str
+    funding_rate_bps: float
+    spot_price: float
+    futures_price: float
+    notional_usdt: float
+    edge_bps: float
+    fees_bps: float
+    slippage_bps: float
+    next_funding_time: datetime
+    is_profitable: bool
+
+    @property
+    def net_edge_bps(self) -> float:
+        return self.edge_bps
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'symbol': self.symbol,
+            'funding_rate_bps': self.funding_rate_bps,
+            'spot_price': self.spot_price,
+            'futures_price': self.futures_price,
+            'notional_usdt': self.notional_usdt,
+            'edge_bps': self.edge_bps,
+            'fees_bps': self.fees_bps,
+            'slippage_bps': self.slippage_bps,
+            'next_funding_time': self.next_funding_time.isoformat(),
+            'is_profitable': self.is_profitable
+        }
 
 
-def compute_edge_bps(funding_bps: float, fee_bps: float, slippage_bps: float) -> float:
-    """Net edge after subtracting fees and slippage."""
-    return funding_bps - fee_bps - slippage_bps
+@dataclass
+class Position:
+    symbol: str
+    spot_amount: float
+    futures_amount: float
+    spot_entry_price: float
+    futures_entry_price: float
+    notional_usdt: float
+    entry_time: datetime
+    funding_collected: float = 0.0
+    realized_pnl: float = 0.0
+
+    def calculate_pnl(
+        self,
+        current_spot_price: float,
+        current_futures_price: float,
+        funding_payment: float = 0.0
+    ) -> float:
+        spot_pnl = (current_spot_price - self.spot_entry_price) * self.spot_amount
+        futures_pnl = -(current_futures_price - self.futures_entry_price) * self.futures_amount
+        self.funding_collected += funding_payment
+        total_pnl = spot_pnl + futures_pnl + self.funding_collected
+        return total_pnl
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'symbol': self.symbol,
+            'spot_amount': self.spot_amount,
+            'futures_amount': self.futures_amount,
+            'spot_entry_price': self.spot_entry_price,
+            'futures_entry_price': self.futures_entry_price,
+            'notional_usdt': self.notional_usdt,
+            'entry_time': self.entry_time.isoformat(),
+            'funding_collected': self.funding_collected,
+            'realized_pnl': self.realized_pnl
+        }
 
 
-def expected_pnl_usdt(notional: float, edge_bps: float) -> float:
-    """Return expected profit in USDT for the window."""
-    return notional * edge_bps * BASIS_POINT
+def calculate_funding_edge(
+    funding_rate: float,
+    fee_bps: float = 7.0,
+    slippage_bps: float = 2.0
+) -> float:
+    funding_bps = funding_rate * 10000
+    edge_bps = funding_bps - fee_bps - slippage_bps
+    return edge_bps
 
 
-def should_open_position(edge_bps: float, threshold_bps: float) -> bool:
+def is_profitable_opportunity(
+    edge_bps: float,
+    threshold_bps: float
+) -> bool:
     return edge_bps >= threshold_bps
 
 
-def window_from_eta(funding_eta: datetime, interval_hours: int = 8) -> FundingWindow:
-    start, end = funding_window_bounds(funding_eta, interval_hours=interval_hours)
-    return FundingWindow(start=start, end=end)
-
-
-def accrue_window_pnl(
-    notional: float,
-    realized_funding_bps: float,
-    fee_bps: float,
-    slippage_bps: float,
+def calculate_position_size(
+    notional_usdt: float,
+    price: float,
+    leverage: float = 1.0
 ) -> float:
-    """Return realized pnl for a full funding window."""
-    edge = compute_edge_bps(realized_funding_bps, fee_bps, slippage_bps)
-    return expected_pnl_usdt(notional, edge)
+    return (notional_usdt / price) * leverage
 
 
-def prorate_edge(edge_bps: float, seconds_elapsed: float, window_seconds: Optional[float] = None) -> float:
-    """Prorate the expected edge by elapsed seconds against the window size."""
-    if window_seconds is None:
-        window_seconds = 8 * 3600
-    if window_seconds <= 0:
-        return 0.0
-    ratio = min(max(seconds_elapsed / window_seconds, 0.0), 1.0)
-    return edge_bps * ratio
+def calculate_funding_payment(
+    position_size: float,
+    mark_price: float,
+    funding_rate: float
+) -> float:
+    return position_size * mark_price * funding_rate
 
 
-def next_window_eta(last_eta: datetime) -> datetime:
-    """Return the next expected funding eta, assuming fixed 8h cadence."""
-    return as_utc(last_eta) + timedelta(hours=8)
+def estimate_total_cost(
+    notional_usdt: float,
+    fee_rate: float = 0.0007,
+    slippage_rate: float = 0.0002
+) -> float:
+    fee_cost = notional_usdt * fee_rate * 2
+    slippage_cost = notional_usdt * slippage_rate * 2
+    return fee_cost + slippage_cost
+
+
+def calculate_breakeven_funding_rate(
+    fee_bps: float = 7.0,
+    slippage_bps: float = 2.0
+) -> float:
+    total_cost_bps = fee_bps + slippage_bps
+    return total_cost_bps / 10000
+
+
+def project_window_pnl(
+    notional_usdt: float,
+    funding_rate: float,
+    fee_bps: float = 7.0,
+    slippage_bps: float = 2.0,
+    num_periods: int = 1
+) -> Dict[str, float]:
+    funding_income = notional_usdt * funding_rate * num_periods
+    total_fees = notional_usdt * (fee_bps / 10000) * 2
+    total_slippage = notional_usdt * (slippage_bps / 10000) * 2
+
+    net_pnl = funding_income - total_fees - total_slippage
+
+    return {
+        'funding_income': funding_income,
+        'total_fees': total_fees,
+        'total_slippage': total_slippage,
+        'net_pnl': net_pnl,
+        'net_pnl_bps': (net_pnl / notional_usdt) * 10000
+    }

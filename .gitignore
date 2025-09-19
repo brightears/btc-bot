@@ -1,28 +1,55 @@
-# Python venv and caches
+# Environment
+.env
+.env.local
 .venv/
+venv/
+env/
+
+# Python
 __pycache__/
 *.py[cod]
-
-# OS artifacts
-.DS_Store
-
-# Project secrets and runtime state
-.env
-.env.*
-!.env.sample
-logs/
-logs
-state.json
-.cache/
-
-# Build artifacts
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg-info/
+.installed.cfg
+*.egg
 
-# Editor configs
+# Logs
+logs/
+*.log
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# Local testing outputs
-.coverage
-pytest_cache/
+# OS
+.DS_Store
+Thumbs.db
 
+# Kill switch
+.kill
+
+# State files
+state.json

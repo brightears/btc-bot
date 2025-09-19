@@ -1,48 +1,58 @@
-"""Time helpers for funding calculations."""
-
-from __future__ import annotations
-
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Tuple
 
 
-def utc_now() -> datetime:
-    """Return the current UTC time with tzinfo."""
+def get_utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def as_utc(dt: datetime) -> datetime:
-    """Convert aware/naive datetimes into a timezone-aware UTC datetime."""
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc)
+def seconds_until(target_time: datetime) -> float:
+    now = get_utc_now()
+    delta = target_time - now
+    return delta.total_seconds()
 
 
-def seconds_until(target: datetime, reference: datetime | None = None) -> float:
-    """Return the number of seconds until the target time from the reference (default now)."""
-    ref = utc_now() if reference is None else as_utc(reference)
-    return max((as_utc(target) - ref).total_seconds(), 0.0)
+def get_funding_window(funding_hour: int = 8) -> Tuple[datetime, datetime]:
+    now = get_utc_now()
+
+    today_funding = now.replace(
+        hour=funding_hour, minute=0, second=0, microsecond=0
+    )
+
+    if now >= today_funding:
+        start = today_funding
+        end = start + timedelta(hours=8)
+    else:
+        start = today_funding - timedelta(hours=16)
+        end = today_funding
+
+    return start, end
 
 
-def funding_window_bounds(
-    funding_eta: datetime, interval_hours: int = 8
-) -> Tuple[datetime, datetime]:
-    """Return the start and end timestamps for the current funding window."""
-    funding_eta_utc = as_utc(funding_eta)
-    start = funding_eta_utc - timedelta(hours=interval_hours)
-    return start, funding_eta_utc
+def get_next_funding_time(funding_hours: list = None) -> datetime:
+    if funding_hours is None:
+        funding_hours = [0, 8, 16]
+
+    now = get_utc_now()
+    current_hour = now.hour
+
+    for hour in funding_hours:
+        funding_time = now.replace(hour=hour, minute=0, second=0, microsecond=0)
+        if funding_time > now:
+            return funding_time
+
+    tomorrow = now + timedelta(days=1)
+    return tomorrow.replace(hour=funding_hours[0], minute=0, second=0, microsecond=0)
 
 
-def humanize_duration(seconds: float) -> str:
-    """Return a coarse human-readable duration string."""
-    seconds = max(int(seconds), 0)
-    hours, rem = divmod(seconds, 3600)
-    minutes, secs = divmod(rem, 60)
-    parts: list[str] = []
-    if hours:
-        parts.append(f"{hours}h")
-    if minutes:
-        parts.append(f"{minutes}m")
-    if secs or not parts:
-        parts.append(f"{secs}s")
-    return " ".join(parts)
+def format_duration(seconds: float) -> str:
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+
+    if hours > 0:
+        return f"{hours}h {minutes}m {secs}s"
+    elif minutes > 0:
+        return f"{minutes}m {secs}s"
+    else:
+        return f"{secs}s"

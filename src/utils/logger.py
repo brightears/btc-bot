@@ -1,53 +1,40 @@
-"""Logging utilities for the funding carry bot."""
-
-from __future__ import annotations
-
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Optional
-
-_LOGGER_NAME = "funding_exec"
-_CONFIGURED = False
 
 
-def configure_logging(level: str = "INFO") -> logging.Logger:
-    """Configure a rotating file logger and return the root project logger."""
-    global _CONFIGURED
+def setup_logger(name: str = "funding_exec", level: str = "INFO") -> logging.Logger:
+    logger = logging.getLogger(name)
+    logger.setLevel(getattr(logging, level.upper()))
 
-    log_dir = Path("logs")
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / "funding_exec.log"
-
-    logger = logging.getLogger(_LOGGER_NAME)
-    logger.setLevel(level.upper())
-
-    if _CONFIGURED:
+    if logger.handlers:
         return logger
 
-    logger.handlers.clear()
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
 
-    fmt = logging.Formatter(
-        fmt="%(asctime)s %(levelname)s %(name)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(getattr(logging, level.upper()))
+
+    file_handler = RotatingFileHandler(
+        log_dir / f"{name}.log",
+        maxBytes=10 * 1024 * 1024,
+        backupCount=5
     )
+    file_handler.setLevel(getattr(logging, level.upper()))
 
-    file_handler = RotatingFileHandler(log_file, maxBytes=2 * 1024 * 1024, backupCount=5)
-    file_handler.setFormatter(fmt)
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    console_handler.setFormatter(formatter)
+    file_handler.setFormatter(formatter)
+
+    logger.addHandler(console_handler)
     logger.addHandler(file_handler)
 
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(fmt)
-    logger.addHandler(stream_handler)
-
-    _CONFIGURED = True
     return logger
 
 
-def get_logger(name: Optional[str] = None) -> logging.Logger:
-    """Return a child logger, configuring the root logger if required."""
-    if not _CONFIGURED:
-        configure_logging()
-    if name:
-        return logging.getLogger(f"{_LOGGER_NAME}.{name}")
-    return logging.getLogger(_LOGGER_NAME)
+def get_logger(name: str = "funding_exec") -> logging.Logger:
+    return logging.getLogger(name)

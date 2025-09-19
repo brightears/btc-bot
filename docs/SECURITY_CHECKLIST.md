@@ -1,10 +1,25 @@
 # Security Checklist
 
-- [ ] Store Binance and Telegram secrets only in `.env`; confirm `.gitignore` excludes it.
-- [ ] Restrict API keys to required permissions (read and trade) and IP whitelist when possible.
-- [ ] Enable two-factor authentication on Binance and revoke unused keys.
-- [ ] Review server firewall rules; allow only necessary outbound traffic.
-- [ ] Monitor `logs/funding_exec.log` for abnormal errors before enabling live mode.
-- [ ] Validate system clock sync (ntp/chrony) to avoid funding window drift.
-- [ ] Rotate logs/state archives regularly and remove sensitive historical data if exported.
-- [ ] Test the kill switch by setting `KILL=1` and confirming the bot exits gracefully.
+## API Keys
+- [ ] Never commit API keys
+- [ ] Use read-only keys for monitoring
+- [ ] Limit IP whitelist on exchange
+- [ ] Enable 2FA on exchange account
+
+## Code Security
+- [ ] .env in .gitignore
+- [ ] No secrets in logs
+- [ ] No secrets in state files
+- [ ] Validate all user inputs
+
+## Runtime Security
+- [ ] Run with minimal privileges
+- [ ] Use systemd security features
+- [ ] Regular security updates
+- [ ] Monitor for anomalies
+
+## Emergency Procedures
+- [ ] Kill switch tested
+- [ ] API key revocation plan
+- [ ] Incident response contacts
+- [ ] Backup access methods

@@ -1,93 +1,137 @@
-import json
-import logging
-from datetime import datetime, timedelta, timezone
-
 import pytest
-
-from exchange.binance import FundingInfo, PriceSnapshot
-from funding.executor import FundingExecutor
-
-
-class FakeExchange:
-    def __init__(self) -> None:
-        self.open_calls = 0
-        self.close_calls = 0
-        self.last_quantity = None
-
-    def setup_leverage(self, symbol: str) -> None:
-        return None
-
-    def get_funding_info(self, symbol: str) -> FundingInfo:
-        eta = datetime.now(timezone.utc) + timedelta(hours=1)
-        return FundingInfo(funding_bps=12.0, next_funding_time=eta)
-
-    def get_prices(self, symbol: str) -> PriceSnapshot:
-        return PriceSnapshot(spot_price=50000.0, perp_price=50010.0)
-
-    def open_carry_position(self, symbol: str, notional: float):
-        self.open_calls += 1
-        qty = notional / 50000.0
-        self.last_quantity = qty
-        return {"orders": {"spot": {"amount": qty}}}
-
-    def close_carry_position(self, symbol: str, quantity: float):
-        self.close_calls += 1
-        self.last_quantity = quantity
-        return {"status": "closed"}
+import json
+from pathlib import Path
+from datetime import datetime, timezone
+from src.funding.executor import FundingExecutor
+from src.funding.model import FundingOpportunity, Position
 
 
-class DummyNotifier:
-    def __init__(self) -> None:
-        self.messages = []
+class TestExecutorDryRun:
+    @pytest.fixture
+    def config(self):
+        return {
+            'symbol': 'BTC/USDT',
+            'notional_usdt': 100,
+            'threshold_bps': 0.5,
+            'fee_bps': 7.0,
+            'slippage_bps': 2.0,
+            'leverage': 1,
+            'maker_only': True,
+            'whitelist_symbols': ['BTC/USDT'],
+            'max_notional_usdt': 10000,
+            'min_notional_usdt': 10,
+            'max_leverage': 3,
+            'max_positions': 1,
+            'log_level': 'INFO'
+        }
 
-    def send_message(self, text: str) -> None:
-        self.messages.append(text)
+    @pytest.fixture
+    def executor(self, config):
+        return FundingExecutor(config, dry_run=True)
 
+    def test_executor_initialization(self, executor, config):
+        assert executor.dry_run == True
+        assert executor.symbol == config['symbol']
+        assert executor.notional_usdt == config['notional_usdt']
+        assert executor.threshold_bps == config['threshold_bps']
+        assert executor.position is None
 
-@pytest.fixture
-def config():
-    return {
-        "symbol": "BTC/USDT",
-        "notional_usdt": 100,
-        "threshold_bps": 0.5,
-        "loop_seconds": 1,
-        "maker_only": True,
-        "leverage": 1,
-        "fee_bps": 7,
-        "slippage_bps": 2,
-        "whitelist_symbols": ["BTC/USDT"],
-        "log_level": "DEBUG",
-    }
+    def test_state_file_creation(self, executor):
+        executor._save_state()
+        assert executor.state_file.exists()
 
+        with open(executor.state_file, 'r') as f:
+            state = json.load(f)
 
-def test_dry_run_opens_position(tmp_path, config):
-    exchange = FakeExchange()
-    notifier = DummyNotifier()
-    logger = logging.getLogger("test")
+        assert 'timestamp' in state
+        assert state['dry_run'] == True
+        assert state['position'] is None
 
-    state_path = tmp_path / "state.json"
-    executor = FundingExecutor(
-        exchange=exchange,
-        notifier=notifier,
-        config=config,
-        logger=logger,
-        dry_run=True,
-        state_path=str(state_path),
-    )
+    def test_check_funding_opportunity(self, executor):
+        opportunity = executor.check_funding_opportunity()
 
-    summary = executor.run_once()
+        assert opportunity is not None
+        assert isinstance(opportunity, FundingOpportunity)
+        assert opportunity.symbol == executor.symbol
+        assert opportunity.notional_usdt == executor.notional_usdt
 
-    assert "edge_bps" in summary
-    assert executor.state["position"] is not None
-    assert notifier.messages
-    with open(state_path, "r", encoding="utf-8") as fh:
-        persisted = json.load(fh)
-    assert persisted["position"] is not None
+    def test_open_position_dry_run(self, executor):
+        opportunity = FundingOpportunity(
+            symbol='BTC/USDT',
+            funding_rate_bps=10.0,
+            spot_price=50000.0,
+            futures_price=50001.0,
+            notional_usdt=100,
+            edge_bps=1.0,
+            fees_bps=7.0,
+            slippage_bps=2.0,
+            next_funding_time=datetime.now(timezone.utc),
+            is_profitable=True
+        )
 
-    # Second run should close after funding eta passes
-    executor.state["position"]["funding_eta"] = (
-        datetime.now(timezone.utc) - timedelta(minutes=1)
-    ).isoformat()
-    summary = executor.run_once()
-    assert executor.state["position"] is None
-    assert exchange.close_calls == 1
+        success = executor.open_position(opportunity)
+
+        assert success == True
+        assert executor.position is not None
+        assert executor.position.symbol == 'BTC/USDT'
+        assert executor.position.notional_usdt == 100
+
+    def test_close_position_dry_run(self, executor):
+        executor.position = Position(
+            symbol='BTC/USDT',
+            spot_amount=0.002,
+            futures_amount=0.002,
+            spot_entry_price=50000,
+            futures_entry_price=50001,
+            notional_usdt=100,
+            entry_time=datetime.now(timezone.utc)
+        )
+
+        success = executor.close_position()
+
+        assert success == True
+        assert executor.position is None
+
+    def test_risk_guard_integration(self, executor):
+        opportunity = FundingOpportunity(
+            symbol='ETH/USDT',
+            funding_rate_bps=10.0,
+            spot_price=3000.0,
+            futures_price=3001.0,
+            notional_usdt=100,
+            edge_bps=1.0,
+            fees_bps=7.0,
+            slippage_bps=2.0,
+            next_funding_time=datetime.now(timezone.utc),
+            is_profitable=True
+        )
+
+        success = executor.open_position(opportunity)
+        assert success == False
+
+    def test_state_persistence(self, executor):
+        executor.position = Position(
+            symbol='BTC/USDT',
+            spot_amount=0.002,
+            futures_amount=0.002,
+            spot_entry_price=50000,
+            futures_entry_price=50001,
+            notional_usdt=100,
+            entry_time=datetime.now(timezone.utc),
+            funding_collected=5.0,
+            realized_pnl=10.0
+        )
+
+        executor._save_state()
+
+        new_executor = FundingExecutor(executor.config, dry_run=True)
+
+        assert new_executor.position is not None
+        assert new_executor.position.symbol == 'BTC/USDT'
+        assert new_executor.position.funding_collected == 5.0
+        assert new_executor.position.realized_pnl == 10.0
+
+    def teardown_method(self):
+        state_file = Path("logs/state.json")
+        if state_file.exists():
+            state_file.unlink()

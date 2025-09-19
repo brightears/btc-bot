@@ -1,48 +1,72 @@
-"""Helpers for applying exchange filters (tick size, step size, notional)."""
-
-from __future__ import annotations
-
-from dataclasses import dataclass
-from decimal import Decimal, ROUND_DOWN, getcontext
-from typing import Optional
-
-getcontext().prec = 18
+import math
+from decimal import Decimal, ROUND_DOWN, ROUND_UP
+from typing import Dict, Any
 
 
-@dataclass
-class SymbolFilters:
-    tick_size: Optional[float]
-    step_size: Optional[float]
-    min_notional: Optional[float]
+def round_to_tick_size(price: float, tick_size: float, round_up: bool = False) -> float:
+    tick_decimal = Decimal(str(tick_size))
+    price_decimal = Decimal(str(price))
+
+    if round_up:
+        return float((price_decimal / tick_decimal).quantize(Decimal('1'), rounding=ROUND_UP) * tick_decimal)
+    else:
+        return float((price_decimal / tick_decimal).quantize(Decimal('1'), rounding=ROUND_DOWN) * tick_decimal)
 
 
-def _quantize(value: float, quantum: Optional[float]) -> float:
-    if not quantum:
-        return value
-    quantized = Decimal(str(value)).quantize(Decimal(str(quantum)), rounding=ROUND_DOWN)
-    return float(quantized)
+def round_to_step_size(quantity: float, step_size: float) -> float:
+    step_decimal = Decimal(str(step_size))
+    qty_decimal = Decimal(str(quantity))
+
+    return float((qty_decimal / step_decimal).quantize(Decimal('1'), rounding=ROUND_DOWN) * step_decimal)
 
 
-def round_price(price: float, tick_size: Optional[float]) -> float:
-    return _quantize(price, tick_size)
+def apply_exchange_filters(
+    symbol: str,
+    price: float,
+    quantity: float,
+    market_info: Dict[str, Any],
+    side: str = "buy"
+) -> tuple[float, float]:
+    limits = market_info.get('limits', {})
+    precision = market_info.get('precision', {})
+
+    tick_size = precision.get('price', 0.01)
+    step_size = precision.get('amount', 0.00001)
+
+    min_cost = limits.get('cost', {}).get('min', 10)
+    min_amount = limits.get('amount', {}).get('min', 0.00001)
+    max_amount = limits.get('amount', {}).get('max', float('inf'))
+
+    filtered_price = round_to_tick_size(price, tick_size, round_up=(side == "buy"))
+
+    filtered_qty = round_to_step_size(quantity, step_size)
+
+    filtered_qty = max(filtered_qty, min_amount)
+    filtered_qty = min(filtered_qty, max_amount)
+
+    notional = filtered_price * filtered_qty
+    if notional < min_cost:
+        filtered_qty = round_to_step_size(min_cost / filtered_price, step_size)
+
+    return filtered_price, filtered_qty
 
 
-def round_quantity(quantity: float, step_size: Optional[float]) -> float:
-    return _quantize(quantity, step_size)
+def validate_order_params(
+    symbol: str,
+    price: float,
+    quantity: float,
+    market_info: Dict[str, Any]
+) -> bool:
+    try:
+        filtered_price, filtered_qty = apply_exchange_filters(
+            symbol, price, quantity, market_info
+        )
 
+        limits = market_info.get('limits', {})
+        min_cost = limits.get('cost', {}).get('min', 10)
 
-def ensure_min_notional(price: float, quantity: float, min_notional: Optional[float]) -> float:
-    if not min_notional:
-        return quantity
-    if price * quantity >= min_notional:
-        return quantity
-    adjusted_qty = min_notional / max(price, 1e-12)
-    return adjusted_qty
+        notional = filtered_price * filtered_qty
+        return notional >= min_cost
 
-
-def apply_filters(price: float, quantity: float, filters: SymbolFilters) -> tuple[float, float]:
-    rounded_price = round_price(price, filters.tick_size)
-    rounded_qty = round_quantity(quantity, filters.step_size)
-    rounded_qty = ensure_min_notional(rounded_price, rounded_qty, filters.min_notional)
-    rounded_qty = round_quantity(rounded_qty, filters.step_size)
-    return rounded_price, rounded_qty
+    except Exception:
+        return False

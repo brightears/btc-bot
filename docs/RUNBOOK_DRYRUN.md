@@ -1,25 +1,37 @@
-# Dry-Run Runbook
+# Dry-Run Testing Guide
 
-1. **Prep environment**
-   - `cp .env.sample .env` and populate optional Telegram fields (leave Binance keys blank for dry-run).
-   - Review `config.yaml`; adjust `threshold_bps`, `notional_usdt`, or loop timings as needed.
+## Pre-flight Checks
 
-2. **Install dependencies**
-   ```bash
-   python3 -m venv .venv && source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
+1. Verify config.yaml exists
+2. Check .env.sample (don't need real keys for dry-run)
+3. Ensure logs/ directory is writable
 
-3. **Start the executor**
-   ```bash
-   ./run_funding_exec.py --max-loops 2
-   ```
-   - Logs stream to stdout and `logs/funding_exec.log`.
-   - `logs/state.json` tracks the simulated position state.
+## Running Dry-Run
 
-4. **Monitor**
-   - Tail `logs/funding_exec.log` for funding edges and decision outcomes.
-   - Run `scripts/health_ping.sh` to report the current mode and state snapshot.
+```bash
+# Basic dry-run
+python run_funding_exec.py
 
-5. **Stop**
-   - Press `Ctrl+C` to interrupt the loop, or set `KILL=1` / touch `.kill` to exit gracefully on the next cycle.
+# With custom parameters
+python run_funding_exec.py --notional_usdt 500 --threshold_bps 1.0
+
+# Faster loop for testing
+python run_funding_exec.py --loop_seconds 60
+```
+
+## What to Expect
+
+- "[DRY-RUN]" prefix in logs
+- Simulated orders logged
+- State saved to logs/state.json
+- No real trades executed
+
+## Monitoring
+
+```bash
+# Watch logs
+tail -f logs/funding_exec.log
+
+# Check state
+cat logs/state.json | jq .
+```

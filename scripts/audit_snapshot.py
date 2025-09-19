@@ -1,38 +1,50 @@
 #!/usr/bin/env python3
-"""Emit a quick snapshot of runtime config without secrets."""
-
-from __future__ import annotations
-
 import json
-import os
+import sys
 from pathlib import Path
+from datetime import datetime
 
-import yaml
 
+def audit_state():
+    state_file = Path("logs/state.json")
 
-def main() -> None:
-    cfg_path = Path("config.yaml")
-    config = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) if cfg_path.exists() else {}
+    if not state_file.exists():
+        print("No state file found")
+        return
 
-    state_path = Path("logs/state.json")
-    state = {}
-    if state_path.exists():
-        try:
-            state = json.loads(state_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            state = {"error": "invalid-json"}
+    with open(state_file, 'r') as f:
+        state = json.load(f)
 
-    snapshot = {
-        "mode": state.get("mode", "unknown"),
-        "position_open": bool(state.get("position")),
-        "symbol": config.get("symbol"),
-        "loop_seconds": config.get("loop_seconds"),
-        "threshold_bps": config.get("threshold_bps"),
-        "maker_only": config.get("maker_only"),
-        "live_flag_env": os.getenv("LIVE_TRADING", "NO") in {"YES", "TRUE", "1"},
-    }
-    print(json.dumps(snapshot, indent=2, sort_keys=True))
+    print("=" * 50)
+    print("STATE AUDIT SNAPSHOT")
+    print("=" * 50)
+    print(f"Timestamp: {state.get('timestamp', 'N/A')}")
+    print(f"Mode: {'DRY-RUN' if state.get('dry_run') else 'LIVE'}")
+
+    if state.get('position'):
+        pos = state['position']
+        print("\n📊 Active Position:")
+        print(f"  Symbol: {pos.get('symbol')}")
+        print(f"  Notional: ${pos.get('notional_usdt', 0):.2f}")
+        print(f"  Entry Time: {pos.get('entry_time')}")
+        print(f"  Spot Entry: ${pos.get('spot_entry_price', 0):.2f}")
+        print(f"  Futures Entry: ${pos.get('futures_entry_price', 0):.2f}")
+        print(f"  Funding Collected: ${pos.get('funding_collected', 0):.4f}")
+        print(f"  Realized P&L: ${pos.get('realized_pnl', 0):.4f}")
+    else:
+        print("\n📊 No active position")
+
+    log_file = Path("logs/funding_exec.log")
+    if log_file.exists():
+        print("\n📝 Recent Activity:")
+        with open(log_file, 'r') as f:
+            lines = f.readlines()
+            for line in lines[-10:]:
+                if "Opening position" in line or "Closing position" in line or "Edge:" in line:
+                    print(f"  {line.strip()}")
+
+    print("=" * 50)
 
 
 if __name__ == "__main__":
-    main()
+    audit_state()

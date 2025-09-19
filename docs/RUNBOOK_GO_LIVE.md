@@ -1,31 +1,42 @@
-# Go-Live Runbook
+# Go-Live Checklist
 
-1. **Pre-flight checks**
-   - Complete the `docs/SECURITY_CHECKLIST.md` items.
-   - Confirm `.env` contains valid keys for both Binance spot and USDⓈ-M accounts.
-   - Ensure `LIVE_TRADING=YES` is set either in the shell or `.env`.
-   - Validate leverage and maker fees on the Binance account (should be 1x and maker rebate or lowest tier possible).
+## Prerequisites
 
-2. **Sanity tests**
-   - Run `pytest` and confirm all tests pass.
-   - Execute one dry-run loop to verify connectivity:
-     ```bash
-     ./run_funding_exec.py --max-loops 1
-     ```
+- [ ] Dry-run tested for 24+ hours
+- [ ] Binance API keys with spot + futures permissions
+- [ ] Small test notional (start with $100)
+- [ ] Telegram bot configured (optional)
 
-3. **Activate live mode**
+## Steps
+
+1. **Set Environment**
    ```bash
-   LIVE_TRADING=YES ./run_funding_exec.py --live
+   export LIVE_TRADING=YES
    ```
-   - Watch the console for funding edge calculations and order submission logs.
-   - Telegram (if configured) should announce entry/exit decisions.
 
-4. **Operate**
-   - Keep `scripts/health_ping.sh` running (e.g., via cron) for lightweight telemetry.
-   - Monitor Binance order history to confirm fills remain maker-only and reduce-only on exits.
-   - Maintain awareness of upcoming maintenance windows or funding rate spikes.
+2. **Verify Config**
+   - Check config.yaml parameters
+   - Confirm whitelist symbols
+   - Verify risk limits
 
-5. **Emergency procedures**
-   - Set `KILL=1` or create a `.kill` file to force the executor to flatten on the next loop.
-   - Revoke API keys at the exchange if compromise is suspected.
-   - If orders hang or the position drifts, manually close both legs and inspect logs/state for root cause.
+3. **Start with Monitoring**
+   ```bash
+   python run_funding_exec.py --live --notional_usdt 100
+   ```
+
+4. **Watch Closely**
+   - First funding cycle
+   - Order execution
+   - P&L tracking
+
+## Emergency Stop
+
+```bash
+# Method 1: Environment variable
+export KILL=1
+
+# Method 2: File trigger
+touch .kill
+
+# Method 3: Ctrl+C
+```

@@ -1,27 +1,29 @@
-# Telegram Setup
+# Telegram Bot Setup
 
-1. **Create a bot**
-   - Open Telegram and talk to [@BotFather](https://t.me/BotFather).
-   - `/newbot` → choose a descriptive name and username.
-   - Save the HTTP API token (do **not** commit it to git).
+## Creating a Bot
 
-2. **Find your chat ID**
-   - Add the new bot to a private chat or group.
-   - Send a `/start` message to the bot.
-   - Call the following from the command line (replace `TOKEN`):
-     ```bash
-     curl -s https://api.telegram.org/botTOKEN/getUpdates | jq '.result[0].message.chat.id'
-     ```
+1. Message @BotFather on Telegram
+2. Send `/newbot`
+3. Choose name and username
+4. Save the token
 
-3. **Configure `.env`**
-   ```ini
-   TELEGRAM_TOKEN=123456:ABC...
-   TELEGRAM_CHAT_ID=987654321
-   ```
+## Getting Chat ID
 
-4. **Verify**
-   - Run the bot in dry-run mode.
-   - You should receive notifications for entries/exits and `/status` summaries.
-   - If messages fail, check network firewalls and confirm the bot has access to the chat.
+1. Message your bot
+2. Visit: `https://api.telegram.org/bot<TOKEN>/getUpdates`
+3. Find your chat ID in the response
 
-> The notifier never logs tokens or chat IDs, but keep `.env` strictly local.
+## Configuration
+
+Add to `.env`:
+```
+TELEGRAM_TOKEN=your_bot_token_here
+TELEGRAM_CHAT_ID=your_chat_id_here
+```
+
+## Alert Types
+
+- Position opened/closed
+- Funding collected
+- Errors and warnings
+- `/status` command support

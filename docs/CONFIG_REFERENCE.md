@@ -1,27 +1,28 @@
-# Config Reference
-
-| Key | Type | Default | Description |
-| --- | --- | --- | --- |
-| `symbol` | string | `"BTC/USDT"` | Trading pair for both spot and perp legs (must exist on Binance spot/USDⓈ-M). |
-| `notional_usdt` | float | `100` | USDT value of the carry trade; also used as the default notional cap. |
-| `threshold_bps` | float | `0.5` | Minimum net edge (in basis points) required to open a position. |
-| `loop_seconds` | int | `300` | Sleep interval between funding checks. |
-| `maker_only` | bool | `true` | If true, submits post-only orders to avoid taker fees. |
-| `leverage` | int | `1` | Leverage applied to the USDⓈ-M leg; executor enforces 1x. |
-| `fee_bps` | float | `7` | Combined maker fee assumption applied in edge calculations. |
-| `slippage_bps` | float | `2` | Cushion for orderbook slippage and rounding. |
-| `whitelist_symbols` | list[str] | `["BTC/USDT"]` | Symbols allowed to trade; acts as an additional guard. |
-| `log_level` | string | `"INFO"` | Logging level for console and file handlers. |
-| `notional_cap_usdt` | float | `notional_usdt` | Optional cap for maximum notional; absence defaults to `notional_usdt`. |
+# Configuration Reference
 
 ## Environment Variables
 
-| Variable | Purpose |
-| --- | --- |
-| `LIVE_TRADING` | Must be set to `YES` **and** `--live` flag must be passed to enable live trading. |
-| `BINANCE_API_KEY` / `BINANCE_API_SECRET` | Credentials for Binance spot account. |
-| `BINANCE_USDM_API_KEY` / `BINANCE_USDM_API_SECRET` | Credentials for Binance USDⓈ-M futures account. |
-| `TELEGRAM_TOKEN` / `TELEGRAM_CHAT_ID` | Optional notifier credentials; absence disables alerts. |
-| `KILL` | Set to `1`, `true`, or `yes` to trigger the kill switch regardless of `.kill` file state. |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| BINANCE_API_KEY | For live | - | Binance API key |
+| BINANCE_API_SECRET | For live | - | Binance API secret |
+| TELEGRAM_TOKEN | No | - | Telegram bot token |
+| TELEGRAM_CHAT_ID | No | - | Telegram chat ID |
+| LIVE_TRADING | Yes | NO | Must be YES for live |
+| KILL | No | 0 | Set to 1 to stop |
 
-Missing credentials simply keep the bot in dry-run mode.
+## Config YAML
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| symbol | str | BTC/USDT | Trading pair |
+| notional_usdt | float | 100 | Position size |
+| threshold_bps | float | 0.5 | Min edge to enter |
+| fee_bps | float | 7 | Trading fees (bps) |
+| slippage_bps | float | 2 | Expected slippage |
+| leverage | int | 1 | Futures leverage |
+| maker_only | bool | true | Post-only orders |
+| whitelist_symbols | list | [BTC/USDT] | Allowed symbols |
+| max_notional_usdt | float | 10000 | Max position |
+| min_notional_usdt | float | 10 | Min position |
+| log_level | str | INFO | Logging level |

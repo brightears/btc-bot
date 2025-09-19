@@ -1,86 +1,108 @@
 #!/usr/bin/env python3
-"""CLI entrypoint for the funding carry bot."""
-
-from __future__ import annotations
-
 import argparse
 import os
+import sys
+import yaml
 from pathlib import Path
 
-import yaml
-from dotenv import load_dotenv
-
-from exchange.binance import BinanceExchange
-from funding.executor import FundingExecutor
-from notify.telegram import TelegramNotifier
-from utils.logger import configure_logging
+from src.funding.executor import FundingExecutor
+from src.utils.logger import setup_logger
 
 
-def load_config(path: str) -> dict:
-    with open(path, "r", encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+def load_config(config_path: str = "config.yaml") -> dict:
+    config_file = Path(config_path)
+    if not config_file.exists():
+        print(f"Config file not found: {config_path}")
+        sys.exit(1)
+
+    with open(config_file, 'r') as f:
+        config = yaml.safe_load(f)
+
+    return config
 
 
-def build_arg_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="BTC funding carry executor")
-    parser.add_argument("--config", default="config.yaml", help="Path to config.yaml")
-    parser.add_argument("--live", action="store_true", help="Enable live trading (requires env)")
-    parser.add_argument("--notional_usdt", type=float, help="Override notional size in USDT")
-    parser.add_argument("--threshold_bps", type=float, help="Override edge threshold in bps")
-    parser.add_argument("--loop_seconds", type=int, help="Override polling interval seconds")
-    parser.add_argument("--maker-only", dest="maker_only", action="store_true", help="Force maker-only")
-    parser.add_argument("--no-maker-only", dest="maker_only", action="store_false", help="Allow taker fills")
-    parser.set_defaults(maker_only=None)
-    parser.add_argument("--max-loops", type=int, help="Maximum loop iterations (for testing)")
-    return parser
+def main():
+    parser = argparse.ArgumentParser(description='BTC Funding-Carry Bot')
 
+    parser.add_argument(
+        '--live',
+        action='store_true',
+        help='Enable live trading (requires LIVE_TRADING=YES env var)'
+    )
 
-def main() -> None:
-    parser = build_arg_parser()
+    parser.add_argument(
+        '--notional_usdt',
+        type=float,
+        help='Notional amount in USDT'
+    )
+
+    parser.add_argument(
+        '--threshold_bps',
+        type=float,
+        help='Minimum edge threshold in basis points'
+    )
+
+    parser.add_argument(
+        '--loop_seconds',
+        type=int,
+        default=300,
+        help='Loop interval in seconds (default: 300)'
+    )
+
+    parser.add_argument(
+        '--maker_only',
+        action='store_true',
+        default=True,
+        help='Use maker-only orders'
+    )
+
+    parser.add_argument(
+        '--config',
+        type=str,
+        default='config.yaml',
+        help='Path to config file'
+    )
+
     args = parser.parse_args()
 
-    load_dotenv(override=False)
+    config = load_config(args.config)
 
-    config_path = Path(args.config)
-    config = load_config(str(config_path))
+    if args.notional_usdt:
+        config['notional_usdt'] = args.notional_usdt
 
-    if args.notional_usdt is not None:
-        config["notional_usdt"] = args.notional_usdt
-    if args.threshold_bps is not None:
-        config["threshold_bps"] = args.threshold_bps
-    if args.loop_seconds is not None:
-        config["loop_seconds"] = args.loop_seconds
-    if args.maker_only is not None:
-        config["maker_only"] = args.maker_only
+    if args.threshold_bps:
+        config['threshold_bps'] = args.threshold_bps
 
-    logger = configure_logging(config.get("log_level", "INFO"))
+    config['maker_only'] = args.maker_only
 
-    live_env = os.getenv("LIVE_TRADING", "NO").strip().upper() == "YES"
-    live = bool(args.live and live_env)
+    live_env = os.getenv('LIVE_TRADING') == 'YES'
+    dry_run = not (args.live and live_env)
+
     if args.live and not live_env:
-        logger.warning("--live flag supplied but LIVE_TRADING env is not YES; running dry-run")
+        print("⚠️  Live trading requires LIVE_TRADING=YES environment variable")
+        print("Running in DRY-RUN mode")
 
-    token = os.getenv("TELEGRAM_TOKEN")
-    chat_id = os.getenv("TELEGRAM_CHAT_ID")
-    notifier = TelegramNotifier(token=token, chat_id=chat_id, logger=logger)
+    log_level = config.get('log_level', 'INFO')
+    setup_logger(level=log_level)
 
-    exchange = BinanceExchange(
-        dry_run=not live,
-        logger=logger,
-        maker_only=config.get("maker_only", True),
-        leverage=config.get("leverage", 1),
-    )
+    mode = "DRY-RUN" if dry_run else "LIVE"
+    print(f"Starting BTC Funding-Carry Bot in {mode} mode")
+    print(f"Symbol: {config.get('symbol', 'BTC/USDT')}")
+    print(f"Notional: ${config.get('notional_usdt', 100)}")
+    print(f"Threshold: {config.get('threshold_bps', 0.5)} bps")
+    print(f"Loop: {args.loop_seconds}s")
+    print("-" * 40)
 
-    executor = FundingExecutor(
-        exchange=exchange,
-        notifier=notifier,
-        config=config,
-        logger=logger,
-        dry_run=not live,
-    )
+    executor = FundingExecutor(config, dry_run=dry_run)
 
-    executor.run(max_loops=args.max_loops)
+    try:
+        executor.run(loop_seconds=args.loop_seconds)
+    except KeyboardInterrupt:
+        print("\nShutting down...")
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
