@@ -1,0 +1,63 @@
+{
+  "pending": [
+    {
+      "id": "d3aea309",
+      "name": "Social Volume Spike Strategy",
+      "category": "sentiment_indicators",
+      "pattern": "social_volume_spike",
+      "description": "Experimental strategy based on social volume spike patterns",
+      "entry_conditions": [
+        {
+          "type": "sentiment",
+          "condition": "social_volume_spike_triggered"
+        },
+        {
+          "type": "volume",
+          "condition": "above_average"
+        }
+      ],
+      "exit_conditions": [
+        {
+          "type": "take_profit",
+          "value": 1.287530561408419
+        },
+        {
+          "type": "stop_loss",
+          "value": 0.9712296681976356
+        },
+        {
+          "type": "time_based",
+          "value": 18
+        }
+      ],
+      "risk_parameters": {
+        "max_position_size": 450.21386686298064,
+        "max_daily_trades": 1,
+        "max_correlation": 0.7,
+        "required_edge_bps": 0.9608949501347743,
+        "min_liquidity": 1000000
+      },
+      "confidence": 62,
+      "created_at": "2025-09-20T14:55:25.175810+00:00",
+      "status": "pending",
+      "backtest_required": true
+    }
+  ],
+  "testing": [],
+  "successful": [],
+  "failed": [],
+  "crazy_ideas": [
+    {
+      "id": "45458049",
+      "name": "Twitter CEO Tweet Fade",
+      "category": "crazy_idea",
+      "description": "Counter-trade immediate reactions to influential figure tweets",
+      "source": "Social media overreaction patterns",
+      "confidence": 29,
+      "risk_limit": 100,
+      "created_at": "2025-09-20T14:55:25.176070+00:00",
+      "status": "experimental",
+      "explanation": "AI generated this based on: Social media overreaction patterns"
+    }
+  ]
+}
