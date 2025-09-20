@@ -4,9 +4,13 @@ import os
 import sys
 import yaml
 from pathlib import Path
+from dotenv import load_dotenv
 
 from src.funding.executor import FundingExecutor
 from src.utils.logger import setup_logger
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 def load_config(config_path: str = "config.yaml") -> dict:

@@ -45,7 +45,7 @@ class FundingExecutor:
         self.maker_only = config.get('maker_only', True)
 
         self.exchange = BinanceClient(dry_run=dry_run)
-        self.telegram = TelegramNotifier(enabled=not dry_run)
+        self.telegram = TelegramNotifier(enabled=True)  # Enable for both dry-run and live
         self.risk_guard = RiskGuard(config)
 
         self.position: Optional[Position] = None
@@ -204,8 +204,9 @@ class FundingExecutor:
                 entry_time=get_utc_now()
             )
 
+            mode_prefix = "[DRY-RUN] " if self.dry_run else ""
             msg = (
-                f"✅ Opened position\n"
+                f"{mode_prefix}✅ Opened position\n"
                 f"Symbol: {self.symbol}\n"
                 f"Notional: ${opportunity.notional_usdt:.2f}\n"
                 f"Edge: {opportunity.edge_bps:.2f} bps\n"
@@ -351,7 +352,17 @@ class FundingExecutor:
             logger.error(f"Error in run cycle: {e}")
 
     def run(self, loop_seconds: int = 300):
-        logger.info(f"Starting funding executor ({'DRY-RUN' if self.dry_run else 'LIVE'})")
+        mode = 'DRY-RUN' if self.dry_run else 'LIVE'
+        logger.info(f"Starting funding executor ({mode})")
+
+        # Send startup notification
+        startup_msg = (
+            f"🚀 Bot started in {mode} mode\n"
+            f"Symbol: {self.symbol}\n"
+            f"Notional: ${self.notional_usdt}\n"
+            f"Threshold: {self.threshold_bps} bps"
+        )
+        self.telegram.send_message(startup_msg)
 
         self.exchange.load_markets()
 
