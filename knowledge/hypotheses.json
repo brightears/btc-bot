@@ -83,6 +83,136 @@
       "created_at": "2025-09-21T02:35:21.049519+00:00",
       "status": "pending",
       "backtest_required": true
+    },
+    {
+      "id": "d32d8b44",
+      "name": "Liquidation Cascades Strategy",
+      "category": "defi_indicators",
+      "pattern": "liquidation_cascades",
+      "description": "Experimental strategy based on liquidation cascades patterns",
+      "entry_conditions": [
+        {
+          "type": "on_chain",
+          "condition": "liquidation_cascades_signal"
+        },
+        {
+          "type": "threshold",
+          "condition": "above_threshold"
+        }
+      ],
+      "exit_conditions": [
+        {
+          "type": "take_profit",
+          "value": 0.8460891551108567
+        },
+        {
+          "type": "stop_loss",
+          "value": 0.47646442935762723
+        },
+        {
+          "type": "time_based",
+          "value": 13
+        }
+      ],
+      "risk_parameters": {
+        "max_position_size": 166.79840775469748,
+        "max_daily_trades": 4,
+        "max_correlation": 0.7,
+        "required_edge_bps": 0.47808287791946324,
+        "min_liquidity": 1000000
+      },
+      "confidence": 46,
+      "created_at": "2025-09-21T06:17:12.489394+00:00",
+      "status": "pending",
+      "backtest_required": true
+    },
+    {
+      "id": "9b71226e",
+      "name": "Bridge Volume Anomalies Strategy",
+      "category": "defi_indicators",
+      "pattern": "bridge_volume_anomalies",
+      "description": "Experimental strategy based on bridge volume anomalies patterns",
+      "entry_conditions": [
+        {
+          "type": "on_chain",
+          "condition": "bridge_volume_anomalies_signal"
+        },
+        {
+          "type": "threshold",
+          "condition": "above_threshold"
+        }
+      ],
+      "exit_conditions": [
+        {
+          "type": "take_profit",
+          "value": 1.1724130593862734
+        },
+        {
+          "type": "stop_loss",
+          "value": 0.7359543830250843
+        },
+        {
+          "type": "time_based",
+          "value": 14
+        }
+      ],
+      "risk_parameters": {
+        "max_position_size": 345.03263447472233,
+        "max_daily_trades": 2,
+        "max_correlation": 0.7,
+        "required_edge_bps": 0.7392169538285228,
+        "min_liquidity": 1000000
+      },
+      "confidence": 48,
+      "created_at": "2025-09-21T06:48:13.020886+00:00",
+      "status": "pending",
+      "backtest_required": true
+    },
+    {
+      "id": "6016cebf",
+      "name": "Options Expiry Pressure Strategy",
+      "category": "market_anomalies",
+      "pattern": "options_expiry_pressure",
+      "description": "Position before monthly options expiry for predictable price movements",
+      "entry_conditions": [
+        {
+          "type": "time_based",
+          "condition": "options_expiry_pressure_active"
+        },
+        {
+          "type": "volatility",
+          "condition": "below_average"
+        }
+      ],
+      "exit_conditions": [
+        {
+          "type": "take_profit",
+          "value": 1.7681418314933572
+        },
+        {
+          "type": "stop_loss",
+          "value": 0.9696629221519137
+        },
+        {
+          "type": "time_based",
+          "value": 44
+        },
+        {
+          "type": "event",
+          "condition": "expiry_passed"
+        }
+      ],
+      "risk_parameters": {
+        "max_position_size": 120.37757651353908,
+        "max_daily_trades": 3,
+        "max_correlation": 0.7,
+        "required_edge_bps": 0.3121464160952502,
+        "min_liquidity": 1000000
+      },
+      "confidence": 51,
+      "created_at": "2025-09-21T07:23:20.279000+00:00",
+      "status": "pending",
+      "backtest_required": true
     }
   ],
   "testing": [],

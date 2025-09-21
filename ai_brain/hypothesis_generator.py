@@ -1,6 +1,7 @@
 """
 Hypothesis Generator
 Generates creative trading strategy ideas from various sources
+Enhanced with LLM capabilities for smarter hypothesis generation
 """
 
 import random
@@ -9,16 +10,18 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from pathlib import Path
 import hashlib
+import asyncio
 
 
 class HypothesisGenerator:
     """Generates creative trading hypotheses and strategy ideas"""
 
-    def __init__(self):
+    def __init__(self, llm_analyzer=None):
         self.hypotheses_db = Path("knowledge/hypotheses.json")
         self.hypotheses_db.parent.mkdir(parents=True, exist_ok=True)
         self.hypotheses = self.load_hypotheses()
         self.creative_sources = self._initialize_creative_sources()
+        self.llm_analyzer = llm_analyzer  # Gemini integration
 
     def load_hypotheses(self) -> Dict:
         """Load hypotheses from disk"""
@@ -87,7 +90,26 @@ class HypothesisGenerator:
 
     def generate_hypothesis(self, market_context: Dict = None) -> Dict:
         """Generate a new trading hypothesis"""
-        # Choose random source category
+        # Use LLM if available for smarter generation
+        if self.llm_analyzer and market_context:
+            # Try to generate LLM-powered hypothesis
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # If already in async context, create task
+                    hypothesis = asyncio.create_task(self._generate_llm_hypothesis(market_context))
+                else:
+                    # If not in async context, run directly
+                    hypothesis = loop.run_until_complete(self._generate_llm_hypothesis(market_context))
+
+                if hypothesis:
+                    self.hypotheses['pending'].append(hypothesis)
+                    self.save_hypotheses()
+                    return hypothesis
+            except Exception:
+                pass  # Fall back to traditional generation
+
+        # Traditional generation
         source_category = random.choice(list(self.creative_sources.keys()))
         source_pattern = random.choice(self.creative_sources[source_category])
 
@@ -99,6 +121,44 @@ class HypothesisGenerator:
         self.save_hypotheses()
 
         return hypothesis
+
+    async def _generate_llm_hypothesis(self, market_context: Dict) -> Optional[Dict]:
+        """Generate hypothesis using LLM analysis"""
+        if not self.llm_analyzer:
+            return None
+
+        try:
+            # Use LLM to generate creative hypothesis
+            llm_hypothesis = await self.llm_analyzer.generate_trading_hypothesis(market_context)
+
+            if llm_hypothesis:
+                # Convert LLM output to our format
+                hypothesis_id = hashlib.md5(
+                    f"{llm_hypothesis.get('thesis', '')}_{datetime.now(timezone.utc).isoformat()}".encode()
+                ).hexdigest()[:8]
+
+                hypothesis = {
+                    'id': hypothesis_id,
+                    'name': llm_hypothesis.get('thesis', 'LLM Generated Strategy')[:50],
+                    'category': 'llm_generated',
+                    'pattern': 'ai_insight',
+                    'description': llm_hypothesis.get('thesis', ''),
+                    'entry_conditions': llm_hypothesis.get('entry_conditions', []),
+                    'exit_conditions': llm_hypothesis.get('exit_conditions', []),
+                    'risk_parameters': llm_hypothesis.get('risk_parameters', self._generate_risk_parameters()),
+                    'confidence': llm_hypothesis.get('confidence', 50),
+                    'created_at': datetime.now(timezone.utc).isoformat(),
+                    'status': 'pending',
+                    'backtest_required': True,
+                    'llm_generated': True,
+                    'expected_outcome': llm_hypothesis.get('expected_outcome', 'Unknown')
+                }
+
+                return hypothesis
+        except Exception:
+            return None
+
+        return None
 
     def _create_hypothesis_from_pattern(self, category: str, pattern: str, context: Dict) -> Dict:
         """Create a specific hypothesis from a pattern"""
