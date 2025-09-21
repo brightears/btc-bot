@@ -66,11 +66,17 @@ class StrategyManager:
         self.strategies[strategy.strategy_id] = strategy
 
         if self.telegram:
-            self.telegram.send_message(
+            import asyncio
+            message = (
                 f"🆕 New strategy added: {strategy.name}\n"
                 f"ID: {strategy.strategy_id}\n"
                 f"Description: {strategy.description}"
             )
+            # Handle both sync and async telegram notifiers
+            if asyncio.iscoroutinefunction(self.telegram.send_message):
+                asyncio.create_task(self.telegram.send_message(message))
+            else:
+                self.telegram.send_message(message)
 
         self.save_state()
 

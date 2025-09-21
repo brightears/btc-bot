@@ -41,6 +41,48 @@
       "created_at": "2025-09-20T14:55:25.175810+00:00",
       "status": "pending",
       "backtest_required": true
+    },
+    {
+      "id": "fb7e2404",
+      "name": "Weekend Effect Strategy",
+      "category": "market_anomalies",
+      "pattern": "weekend_effect",
+      "description": "Exploit lower weekend liquidity and reduced institutional activity for mean reversion trades",
+      "entry_conditions": [
+        {
+          "type": "time_based",
+          "condition": "weekend_effect_active"
+        },
+        {
+          "type": "volatility",
+          "condition": "below_average"
+        }
+      ],
+      "exit_conditions": [
+        {
+          "type": "take_profit",
+          "value": 0.6915432760889264
+        },
+        {
+          "type": "stop_loss",
+          "value": 0.6334699673492007
+        },
+        {
+          "type": "time_based",
+          "value": 22
+        }
+      ],
+      "risk_parameters": {
+        "max_position_size": 134.71703456107238,
+        "max_daily_trades": 3,
+        "max_correlation": 0.7,
+        "required_edge_bps": 0.650725026814992,
+        "min_liquidity": 1000000
+      },
+      "confidence": 58,
+      "created_at": "2025-09-21T02:35:21.049519+00:00",
+      "status": "pending",
+      "backtest_required": true
     }
   ],
   "testing": [],
