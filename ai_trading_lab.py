@@ -88,12 +88,30 @@ class AITradingLab:
         base_price = 65000
         variation = random.uniform(-500, 500)
 
+        # Generate historical data if not exists
+        if not hasattr(self, 'price_history'):
+            self.price_history = [base_price + random.uniform(-1000, 1000) for _ in range(20)]
+            self.volume_history = [random.uniform(800000, 1200000) for _ in range(20)]
+
+        # Add new price and volume
+        current_price = base_price + variation
+        current_volume = random.uniform(800000, 1200000)
+
+        self.price_history.append(current_price)
+        self.volume_history.append(current_volume)
+
+        # Keep only last 100 data points
+        self.price_history = self.price_history[-100:]
+        self.volume_history = self.volume_history[-100:]
+
         return {
             'timestamp': datetime.now(timezone.utc),
-            'price': base_price + variation,
-            'volume': random.uniform(800000, 1200000),
+            'price': current_price,
+            'volume': current_volume,
             'funding_rate': random.uniform(-0.0002, 0.0002),
-            'sentiment': random.choice(['bullish', 'neutral', 'bearish'])
+            'sentiment': random.choice(['bullish', 'neutral', 'bearish']),
+            'price_history': self.price_history,
+            'volume_history': self.volume_history
         }
 
     async def send_startup_report(self):
