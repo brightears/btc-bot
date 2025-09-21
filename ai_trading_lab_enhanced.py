@@ -8,6 +8,7 @@ import os
 import json
 import asyncio
 from datetime import datetime, timezone, timedelta
+from typing import Dict, List, Optional
 from dotenv import load_dotenv
 from telegram import Bot
 import random
