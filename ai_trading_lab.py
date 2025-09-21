@@ -192,7 +192,9 @@ class AITradingLab:
                             if iteration % 5 == 0:  # Every 5 iterations
                                 is_win = random.random() > 0.45  # 55% win rate
                                 pnl = random.uniform(10, 100) if is_win else random.uniform(-50, -10)
-                                strategy.metrics.record_trade(pnl)
+                                # Update metrics if the method exists
+                                if hasattr(strategy.metrics, 'record_trade'):
+                                    strategy.metrics.record_trade(pnl)
                                 strategy.confidence_score = min(100, strategy.confidence_score + (0.5 if is_win else -0.2))
 
                     # Check for strategies ready for live
@@ -278,7 +280,7 @@ class AITradingLab:
                         f"• Combined P&L: ${total_pnl:.2f}\n\n"
                         f"*AI Learning:*\n"
                         f"• Patterns Found: {insights['patterns_learned']}\n"
-                        f"• Market State: {insights['current_market_state']}\n"
+                        f"• Market State: {insights.get('current_market_state', 'analyzing')}\n"
                         f"• Iteration: {iteration}\n\n"
                         f"_Everything running smoothly ✅_"
                     )
