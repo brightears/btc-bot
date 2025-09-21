@@ -1,207 +1,268 @@
-# BTC Funding Carry Bot 🤖
+# AI Trading Lab - Intelligent Cryptocurrency Trading System
 
-Production-ready bot for executing delta-neutral funding carry strategies on Binance. Currently monitoring in dry-run mode.
+## Overview
 
-## 🚀 Quick Start
+The AI Trading Lab is an advanced, self-learning cryptocurrency trading system that combines delta-neutral funding carry strategies with artificial intelligence to continuously discover, test, and optimize trading opportunities. Currently deployed and running 24/7 on VPS.
 
+### Key Features
+
+- **AI-Powered Strategy Generation**: Continuously generates and tests new trading hypotheses
+- **Self-Learning System**: Learns from market patterns and improves over time
+- **Parallel Strategy Testing**: Tests multiple strategies simultaneously in dry-run mode
+- **Delta-Neutral Funding Carry**: Core strategy using long spot + short perpetual positions
+- **24/7 VPS Operation**: Runs continuously with auto-restart monitoring
+- **Telegram Integration**: Hourly reports and 6-hour heartbeat notifications
+- **Double-Gated Safety**: Dry-run by default with manual approval for live trading
+
+## System Status
+
+**Current Deployment:**
+- **Status**: ✅ Running on VPS (5.223.55.219)
+- **Version**: v1.0-ai-lab-deployed
+- **Mode**: Dry-run (testing strategies)
+- **Monitoring**: Auto-restart enabled
+- **Notifications**: Telegram active
+
+## Quick Start
+
+### Local Testing
 ```bash
-# Clone and setup
-git clone https://github.com/brightears/btc-bot.git
-cd btc-bot
-python -m venv .venv
-source .venv/bin/activate
+# Install dependencies
 pip install -r requirements.txt
 
-# Configure (copy .env.sample and add your credentials)
-cp .env.sample .env
-nano .env
+# Configure environment
+cp .env.example .env
+# Edit .env with your API keys
 
-# Run in dry-run mode (default)
-python run_funding_exec.py
-
-# Monitor with dashboard
-python monitor.py
-
-# Run Telegram command bot
-python telegram_bot.py
+# Start AI Trading Lab
+python ai_trading_lab.py
 ```
 
-## 📊 Current Status
-
-- **Mode**: DRY-RUN (Paper Trading)
-- **Strategy**: Delta-neutral BTC funding carry
-- **Exchange**: Binance USDⓈ-M Futures
-- **Monitoring**: 24/7 on Hetzner VPS (Singapore)
-
-## 🎮 Control Commands
-
-### Telegram Bot Commands
-```
-/status   - Current position and bot status
-/metrics  - Performance metrics
-/pause    - Pause new position opening
-/resume   - Resume operations
-/stop     - Emergency stop (creates kill file)
-/help     - Show available commands
-```
-
-### Terminal Monitoring
+### VPS Management
 ```bash
-# Real-time dashboard
-python monitor.py
+# SSH to VPS
+ssh root@5.223.55.219
 
-# Check logs
-tail -f logs/funding_exec.log
+# Check status
+python get_status.py
 
-# View current state
-cat logs/state.json | jq
+# View logs
+tail -f ai_lab.log
 
-# Check metrics
-cat logs/metrics.json | jq
+# Approve a strategy
+python approve_strategy.py STRATEGY_ID
+
+# Enable live trading (requires double confirmation)
+python go_live.py
+
+# Emergency stop
+python stop_trading.py
 ```
 
-## 🔧 Configuration
+## Architecture
+
+### Core Components
+
+1. **AI Brain** (`ai_brain/`)
+   - `learning_engine.py`: Pattern recognition and market analysis
+   - `hypothesis_generator.py`: Creates innovative trading strategies
+   - `strategy_evaluator.py`: Evaluates strategy performance
+
+2. **Trading Execution** (`src/`)
+   - `funding/executor.py`: Executes funding carry trades
+   - `exchange/binance.py`: Exchange integration via CCXT
+   - `risk/guards.py`: Risk management and safety checks
+
+3. **Management Scripts**
+   - `ai_trading_lab.py`: Main AI system with notifications
+   - `get_status.py`: Check current system state
+   - `approve_strategy.py`: Approve strategies for live trading
+   - `go_live.py`: Enable live trading mode
+   - `stop_trading.py`: Emergency stop
+   - `monitor_bot.sh`: VPS monitoring and auto-restart
+
+## Trading Strategies
+
+### Active Strategies
+
+1. **Delta-Neutral Funding Carry**
+   - Long spot BTC + Short BTC perpetual futures
+   - Captures funding rate differential
+   - Market-neutral position
+
+2. **AI-Generated Strategies** (Testing)
+   - Pattern-based strategies from market analysis
+   - Hypothesis-driven experimental strategies
+   - Creative "crazy ideas" for edge discovery
+
+## Safety Features
+
+### Multi-Layer Protection
+
+1. **Dry-Run Default**: All strategies test in simulation first
+2. **Manual Approval**: Strategies require explicit approval
+3. **Double-Gated Live Trading**: Two confirmations needed
+4. **Position Limits**: Max position size constraints
+5. **Emergency Stop**: Instant shutdown capability
+6. **Risk Guards**: Continuous monitoring and limits
+
+## Monitoring
+
+### Telegram Notifications
+
+- **Hourly Reports**: Strategy performance and market analysis
+- **6-Hour Heartbeat**: System health confirmation
+- **Action Alerts**: When manual intervention needed
+- **Strategy Discoveries**: New promising strategies found
+
+### Logs and Metrics
+
+```bash
+# View main log
+tail -f ai_lab.log
+
+# Check strategy performance
+cat strategies/performance_log.json
+
+# Monitor system metrics
+python get_status.py
+```
+
+## Configuration
 
 ### Environment Variables (.env)
+
 ```bash
-# Binance API (for live trading)
+# Exchange API
 BINANCE_API_KEY=your_api_key
 BINANCE_SECRET_KEY=your_secret_key
+BINANCE_TESTNET=True
 
-# Telegram notifications
+# Telegram
 TELEGRAM_TOKEN=your_bot_token
 TELEGRAM_CHAT_ID=your_chat_id
 
-# Safety gate for live trading
-LIVE_TRADING=NO  # Must be YES for live trading
+# Safety Gates
+LIVE_TRADING_ENABLED=false
+LIVE_TRADE_REQUIRE_DOUBLE_CHECK=true
+MAX_POSITION_SIZE_USDT=1000
 ```
 
-### Strategy Parameters
+## Development
+
+### Project Structure
+
+```
+btc-bot/
+├── ai_brain/              # AI components
+│   ├── learning_engine.py
+│   ├── hypothesis_generator.py
+│   └── strategy_evaluator.py
+├── src/                   # Core trading logic
+│   ├── exchange/         # Exchange integration
+│   ├── funding/          # Funding carry execution
+│   └── risk/             # Risk management
+├── strategies/           # Strategy storage
+├── ai_trading_lab.py     # Main AI system
+├── monitor_bot.sh        # VPS monitoring
+└── management_scripts/   # Control scripts
+```
+
+### Testing
+
 ```bash
-# Run with custom settings
-python run_funding_exec.py \
-  --notional_usdt 500 \     # Position size in USDT
-  --threshold_bps 0.5 \      # Min edge to enter (basis points)
-  --max_position_usdt 5000 \ # Max total exposure
-  --loop_seconds 300          # Check interval (5 minutes)
+# Run tests
+pytest tests/ -v
+
+# Test specific component
+pytest tests/test_ai_brain.py -v
+
+# Dry-run testing
+python ai_trading_lab.py --dry-run
 ```
 
-## 📈 How It Works
+## Management Commands
 
-1. **Monitor Funding Rates**: Checks BTC perpetual funding every 5 minutes
-2. **Calculate Edge**: `funding_rate - fees - slippage`
-3. **Open Position**: When edge > 0.5 bps:
-   - Long spot BTC
-   - Short equal USDⓈ-M futures
-4. **Collect Funding**: Every 8 hours (00:00, 08:00, 16:00 UTC)
-5. **Close Position**: When edge becomes negative
+### Control Scripts
 
-### Risk Management
-- **Delta-neutral**: No directional market risk
-- **Position limits**: Max exposure caps
-- **Double-gate safety**: Requires env var AND CLI flag for live
-- **Emergency stop**: Kill file immediately closes positions
-- **Dry-run default**: Always starts in simulation mode
+- **get_status.py** - Check system status and active strategies
+- **approve_strategy.py** - Approve AI-generated strategies for live testing
+- **go_live.py** - Enable live trading (requires double confirmation)
+- **stop_trading.py** - Emergency stop all trading
+- **send_test_notification.py** - Test Telegram connectivity
 
-## 🚢 VPS Deployment
+### Monitoring
 
-### Current Setup
+- **monitor_bot.sh** - Auto-restart script for VPS
+- **ai_lab.log** - Main system log file
+- **strategies/performance_log.json** - Strategy performance metrics
+
+## Roadmap
+
+### Phase 1: Foundation ✅
+- Basic funding carry bot
+- Telegram notifications
+- Safety gates and controls
+
+### Phase 2: AI Integration ✅
+- Learning engine
+- Pattern recognition
+- Hypothesis generation
+
+### Phase 3: VPS Deployment ✅
+- Automated deployment
+- 24/7 operation
+- Remote management
+
+### Phase 4: Advanced Learning (Current)
+- Deep reinforcement learning
+- Multi-market correlation
+- Cross-strategy optimization
+
+### Phase 5: Scaling (Planned)
+- Multiple exchange support
+- Portfolio-level optimization
+- Distributed strategy testing
+
+## VPS Deployment
+
+### Current Infrastructure
+
 - **Server**: Hetzner Cloud (Singapore)
 - **IP**: 5.223.55.219
-- **Processes**:
-  - Main bot: `screen -r btc-bot`
-  - Telegram bot: `screen -r telegram-bot`
+- **GitHub**: https://github.com/brightears/btc-bot.git
 
-### Deploy Updates
+### Deployment Process
+
 ```bash
-# Push to GitHub
+# Push updates to GitHub
 git add .
-git commit -m "Update"
-git push
+git commit -m "Update AI Trading Lab"
+git push origin main
 
-# On VPS
+# On VPS - Pull and restart
 ssh root@5.223.55.219
 cd /root/btc-bot
 git pull
-source venv/bin/activate
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 
-# Restart services
-screen -S btc-bot -X quit
-screen -S telegram-bot -X quit
-screen -dmS btc-bot bash -c 'cd /root/btc-bot && source venv/bin/activate && python run_funding_exec.py'
-screen -dmS telegram-bot bash -c 'cd /root/btc-bot && source venv/bin/activate && python telegram_bot.py'
+# Restart AI Lab (auto-restart handles this)
+pkill -f ai_trading_lab
+# monitor_bot.sh will auto-restart
 ```
 
-## 📊 Performance Tracking
-
-### Metrics Collected
-- Total trades executed
-- Win rate percentage
-- Total P&L (profit/loss)
-- Total funding collected
-- Average funding per trade
-- Best/worst trade P&L
-
-### State Persistence
-- `logs/state.json` - Current position and bot state
-- `logs/metrics.json` - Cumulative performance metrics
-- `logs/funding_exec.log` - Detailed execution logs
-
-## 🛡️ Safety Features
-
-1. **Dry-Run Default**: Always starts in paper trading mode
-2. **Double-Gate Live**: Needs `LIVE_TRADING=YES` + `--live` flag
-3. **Kill Switch**: Touch `.kill` file for emergency stop
-4. **Pause/Resume**: Control via Telegram commands
-5. **Position Limits**: Configurable max exposure
-6. **Balance Checks**: Ensures sufficient funds before trading
-7. **Exchange Compliance**: Respects tick size, step size, min notional
-
-## 📚 Documentation
-
-- **[Strategy Guide](docs/FUNDING_CARRY.md)** - Understanding funding carry
-- **[Operations Manual](docs/RUNBOOK_DRYRUN.md)** - Daily operations
-- **[Going Live Checklist](docs/RUNBOOK_GO_LIVE.md)** - Production preparation
-- **[Configuration Reference](docs/CONFIG_REFERENCE.md)** - All settings
-- **[Security Guidelines](docs/SECURITY_CHECKLIST.md)** - Best practices
-- **[Architecture](docs/ARCHITECTURE.md)** - System design
-
-## 🎯 Next Steps
-
-### Phase 1: Dry-Run (Current)
-- [x] Deploy to VPS
-- [x] Setup monitoring
-- [x] Enable Telegram commands
-- [ ] Run for 48-72 hours
-- [ ] Collect performance metrics
-- [ ] Analyze trading decisions
-
-### Phase 2: Evaluation
-- [ ] Review dry-run results
-- [ ] Calculate expected returns
-- [ ] Verify risk controls
-- [ ] Test emergency procedures
-
-### Phase 3: Go Live (Optional)
-- [ ] Add Binance API keys
-- [ ] Enable `LIVE_TRADING=YES`
-- [ ] Start with small position
-- [ ] Monitor closely for 24 hours
-- [ ] Scale up gradually
-
-## 🤝 Support
+## Support
 
 For issues or questions:
-1. Check the [documentation](docs/)
-2. Review [logs](logs/) for errors
-3. Use Telegram `/help` command
-4. Check bot status with `/status`
+- Check logs: `tail -f ai_lab.log`
+- View status: `python get_status.py`
+- Emergency stop: `python stop_trading.py`
+- Telegram notifications for real-time updates
 
-## ⚠️ Disclaimer
+## License
 
-This bot is for educational purposes. Cryptocurrency trading carries risk. Always test thoroughly in dry-run mode before using real funds. The authors are not responsible for any financial losses.
+Proprietary - All rights reserved
 
-## 📜 License
+---
 
-MIT License - See [LICENSE](LICENSE) file for details
+**Note**: This system is in active development. Always monitor performance and never risk more than you can afford to lose in cryptocurrency trading.
