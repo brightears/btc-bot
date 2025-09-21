@@ -5,6 +5,7 @@ Manages multiple trading strategies running in parallel
 
 import asyncio
 import json
+import logging
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional
 from pathlib import Path
@@ -15,6 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 from strategies.base_strategy import BaseStrategy, Signal
 from ai_brain.learning_engine import LearningEngine
 from ai_brain.hypothesis_generator import HypothesisGenerator
+from ai_brain.historical_data_fetcher import HistoricalDataFetcher
 
 
 class StrategyManager:
@@ -25,6 +27,8 @@ class StrategyManager:
         self.telegram = telegram_notifier
         self.learning_engine = LearningEngine()
         self.hypothesis_generator = HypothesisGenerator()
+        self.historical_fetcher = HistoricalDataFetcher()
+        self.logger = logging.getLogger(__name__)
 
         self.manager_state_file = Path("knowledge/manager_state.json")
         self.manager_state_file.parent.mkdir(parents=True, exist_ok=True)
@@ -37,6 +41,7 @@ class StrategyManager:
         # Performance tracking
         self.performance_history = []
         self.ready_for_live = []  # Strategies ready to go live
+        self.backtest_results = {}  # Store backtest results by strategy ID
 
         self.load_state()
 
@@ -149,21 +154,46 @@ class StrategyManager:
             'strategies_evaluated': len(self.strategies),
             'ready_for_live': [],
             'needs_optimization': [],
-            'should_stop': []
+            'should_stop': [],
+            'backtest_vs_live': []
         }
 
         for strategy_id, strategy in self.strategies.items():
             status = strategy.get_status()
 
+            # Compare with backtest if available
+            if strategy_id in self.backtest_results:
+                backtest = self.backtest_results[strategy_id]
+                live_metrics = status['metrics']
+
+                comparison = {
+                    'strategy_id': strategy_id,
+                    'name': strategy.name,
+                    'backtest_win_rate': backtest.get('win_rate', 0),
+                    'live_win_rate': live_metrics['win_rate'],
+                    'backtest_pnl': backtest.get('total_pnl', 0),
+                    'live_pnl': live_metrics['total_pnl'],
+                    'performance_delta': live_metrics['win_rate'] - backtest.get('win_rate', 0)
+                }
+                evaluation_report['backtest_vs_live'].append(comparison)
+
             # Check if ready for live
             if strategy.should_go_live() and strategy_id not in self.ready_for_live:
                 self.ready_for_live.append(strategy_id)
+
+                # Include backtest comparison in ready notification
+                backtest_info = ""
+                if strategy_id in self.backtest_results:
+                    bt = self.backtest_results[strategy_id]
+                    backtest_info = f"Backtest: {bt.get('win_rate', 0):.1f}% win rate, "
+
                 evaluation_report['ready_for_live'].append({
                     'id': strategy_id,
                     'name': strategy.name,
                     'confidence': status['confidence_score'],
                     'win_rate': status['metrics']['win_rate'],
-                    'total_pnl': status['metrics']['total_pnl']
+                    'total_pnl': status['metrics']['total_pnl'],
+                    'backtest_comparison': backtest_info
                 })
 
                 # Send Telegram alert
@@ -203,7 +233,37 @@ class StrategyManager:
 
         return evaluation_report
 
-    def launch_new_experiment(self):
+    async def backtest_strategy(self, strategy: BaseStrategy) -> Dict:
+        """Run backtest on a strategy before live testing"""
+        try:
+            # Fetch historical data
+            backtest_data = await self.historical_fetcher.get_backtest_data(days=30)
+
+            if not backtest_data:
+                return {
+                    'success': False,
+                    'error': 'No historical data available'
+                }
+
+            # Run backtest
+            results = strategy.backtest(backtest_data)
+
+            # Store results
+            self.backtest_results[strategy.strategy_id] = results
+
+            return {
+                'success': True,
+                'results': results
+            }
+
+        except Exception as e:
+            self.logger.error(f"Backtest error: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    async def launch_new_experiment(self):
         """Launch a new experimental strategy from hypothesis generator"""
         # Get next hypothesis to test
         hypothesis = self.hypothesis_generator.get_next_hypothesis_to_test()
@@ -217,16 +277,62 @@ class StrategyManager:
                 hypothesis=hypothesis
             )
 
-            self.add_strategy(exp_strategy)
+            # Run backtest first
+            backtest_result = await self.backtest_strategy(exp_strategy)
 
-            if self.telegram:
-                self.telegram.send_message(
-                    f"🧪 New Experiment Launched!\n\n"
-                    f"Name: {hypothesis['name']}\n"
-                    f"Category: {hypothesis['category']}\n"
-                    f"Description: {hypothesis['description']}\n"
-                    f"Initial Confidence: {hypothesis.get('confidence', 50)}%"
-                )
+            if backtest_result['success']:
+                backtest_metrics = backtest_result['results']
+
+                # Only add strategy if backtest shows promise
+                if backtest_metrics.get('win_rate', 0) >= 40 or backtest_metrics.get('total_pnl', 0) > 0:
+                    self.add_strategy(exp_strategy)
+
+                    # Send detailed notification with backtest results
+                    if self.telegram:
+                        await self.telegram.send_message(
+                            f"🧪 *New Experiment Launched!*\n\n"
+                            f"*Name:* {hypothesis['name']}\n"
+                            f"*Category:* {hypothesis['category']}\n"
+                            f"*Description:* {hypothesis['description']}\n"
+                            f"*Initial Confidence:* {hypothesis.get('confidence', 50)}%\n\n"
+                            f"*📊 Backtest Results (30 days):*\n"
+                            f"• Total Trades: {backtest_metrics.get('total_trades', 0)}\n"
+                            f"• Win Rate: {backtest_metrics.get('win_rate', 0):.1f}%\n"
+                            f"• Total P&L: ${backtest_metrics.get('total_pnl', 0):.2f}\n"
+                            f"• Max Drawdown: ${backtest_metrics.get('max_drawdown', 0):.2f}\n\n"
+                            f"_Strategy passed backtest and is now live testing_"
+                        )
+                else:
+                    # Strategy failed backtest
+                    if self.telegram:
+                        await self.telegram.send_message(
+                            f"❌ *Experiment Failed Backtest*\n\n"
+                            f"*Name:* {hypothesis['name']}\n"
+                            f"*Win Rate:* {backtest_metrics.get('win_rate', 0):.1f}%\n"
+                            f"*P&L:* ${backtest_metrics.get('total_pnl', 0):.2f}\n\n"
+                            f"_Strategy discarded, generating new hypothesis..._"
+                        )
+
+                    # Mark hypothesis as failed
+                    self.hypothesis_generator.evaluate_hypothesis(
+                        hypothesis['id'],
+                        backtest_metrics
+                    )
+
+                    # Try another hypothesis
+                    return await self.launch_new_experiment()
+            else:
+                # Backtest failed to run
+                # Add strategy anyway but note the issue
+                self.add_strategy(exp_strategy)
+
+                if self.telegram:
+                    await self.telegram.send_message(
+                        f"🧪 *New Experiment (No Backtest)*\n\n"
+                        f"*Name:* {hypothesis['name']}\n"
+                        f"*Category:* {hypothesis['category']}\n"
+                        f"_Backtest unavailable, proceeding with live testing_"
+                    )
 
             return hypothesis
 
@@ -316,16 +422,40 @@ class StrategyManager:
         strategy_performance = []
         for strategy_id, strategy in self.strategies.items():
             status = strategy.get_status()
-            strategy_performance.append({
+
+            perf_data = {
                 'name': strategy.name,
                 'confidence': status['confidence_score'],
                 'win_rate': status['metrics']['win_rate'],
                 'total_pnl': status['metrics']['total_pnl'],
                 'status': 'LIVE' if strategy.is_live else 'TESTING'
-            })
+            }
+
+            # Add backtest comparison if available
+            if strategy_id in self.backtest_results:
+                bt = self.backtest_results[strategy_id]
+                perf_data['backtest_win_rate'] = bt.get('win_rate', 0)
+                perf_data['backtest_pnl'] = bt.get('total_pnl', 0)
+                perf_data['performance_vs_backtest'] = (
+                    'outperforming' if status['metrics']['win_rate'] > bt.get('win_rate', 0)
+                    else 'underperforming'
+                )
+
+            strategy_performance.append(perf_data)
 
         # Sort by total P&L
         strategy_performance.sort(key=lambda x: x['total_pnl'], reverse=True)
+
+        # Calculate backtest statistics
+        backtest_stats = {
+            'total_backtested': len(self.backtest_results),
+            'avg_backtest_win_rate': sum(bt.get('win_rate', 0) for bt in self.backtest_results.values()) / max(len(self.backtest_results), 1),
+            'strategies_beating_backtest': sum(
+                1 for sid, strategy in self.strategies.items()
+                if sid in self.backtest_results and
+                strategy.get_status()['metrics']['win_rate'] > self.backtest_results[sid].get('win_rate', 0)
+            )
+        }
 
         report = {
             'timestamp': datetime.now(timezone.utc).isoformat(),
@@ -333,6 +463,7 @@ class StrategyManager:
             'live_strategies': sum(1 for s in self.strategies.values() if s.is_live),
             'ready_for_live': len(self.ready_for_live),
             'top_strategies': strategy_performance[:5],
+            'backtest_statistics': backtest_stats,
             'market_insights': market_insights,
             'hypothesis_statistics': hypothesis_stats,
             'recommendations': self._generate_recommendations()

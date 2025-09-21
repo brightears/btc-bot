@@ -403,6 +403,24 @@ class EnhancedAITradingLab:
         msg += f"• Avg Confidence: {avg_confidence:.1f}%\n"
         msg += f"• Combined P&L: ${total_pnl:.2f}\n\n"
 
+        # Add backtest statistics if available
+        if hasattr(self.strategy_manager, 'backtest_results') and self.strategy_manager.backtest_results:
+            bt_stats = self.strategy_manager.backtest_results
+            avg_bt_win = sum(bt.get('win_rate', 0) for bt in bt_stats.values()) / max(len(bt_stats), 1)
+            msg += f"*Backtest vs Live:*\n"
+            msg += f"• Strategies Backtested: {len(bt_stats)}\n"
+            msg += f"• Avg Backtest Win Rate: {avg_bt_win:.1f}%\n"
+
+            # Count how many are beating their backtest
+            beating = 0
+            for sid, strategy in self.strategy_manager.strategies.items():
+                if sid in bt_stats and hasattr(strategy, 'metrics'):
+                    if strategy.metrics.win_rate > bt_stats[sid].get('win_rate', 0):
+                        beating += 1
+
+            if len(bt_stats) > 0:
+                msg += f"• Beating Backtest: {beating}/{len(bt_stats)}\n\n"
+
         msg += f"*AI Learning:*\n"
         msg += f"• Patterns Found: {insights['patterns_learned']}\n"
         msg += f"• Market State: {insights.get('current_market_state', 'analyzing')}\n"
@@ -413,7 +431,7 @@ class EnhancedAITradingLab:
             msg += f"• Sentiment: {self.latest_sentiment['sentiment_label']}\n"
             msg += f"• News Impact: {'High' if len(self.latest_news) > 10 else 'Normal'}\n"
 
-        msg += f"\n_Enhanced with Gemini 2.5 Flash intelligence ✨_"
+        msg += f"\n_Enhanced with Gemini 2.5 Flash + Backtesting ✨_"
 
         await self.send_message(msg)
 
