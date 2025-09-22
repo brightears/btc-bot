@@ -23,6 +23,13 @@ class HypothesisGenerator:
         self.creative_sources = self._initialize_creative_sources()
         self.llm_analyzer = llm_analyzer  # Gemini integration
 
+        # Initialize cleaner to prevent file growth
+        try:
+            from .hypothesis_cleaner import HypothesisCleaner
+            self.cleaner = HypothesisCleaner(max_per_category=50)
+        except ImportError:
+            self.cleaner = None
+
     def load_hypotheses(self) -> Dict:
         """Load hypotheses from disk"""
         if self.hypotheses_db.exists():
@@ -38,6 +45,12 @@ class HypothesisGenerator:
 
     def save_hypotheses(self):
         """Save hypotheses to disk"""
+        # Clean before saving to prevent file growth
+        if self.cleaner:
+            self.cleaner.clean_hypotheses()
+            # Reload after cleaning
+            self.hypotheses = self.load_hypotheses()
+
         with open(self.hypotheses_db, 'w') as f:
             json.dump(self.hypotheses, f, indent=2, default=str)
 
