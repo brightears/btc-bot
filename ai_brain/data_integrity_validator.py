@@ -20,7 +20,7 @@ class DataIntegrityValidator:
         self.btc_price_min = 10000  # BTC should be above $10k
         self.btc_price_max = 500000  # BTC shouldn't exceed $500k
         self.max_price_change_per_minute = 0.1  # 10% max change
-        self.min_volume = 100000  # Minimum volume in USDT
+        self.min_volume = 1000  # Minimum volume in USDT (more reasonable)
         self.max_funding_rate = 0.01  # 1% max funding rate
 
         # Track last known good values

@@ -145,9 +145,26 @@ class EnhancedAITradingLab:
             # Run async function in sync context
             try:
                 import asyncio
-                loop = asyncio.new_event_loop()
-                real_data = loop.run_until_complete(self.market_data_fetcher.get_market_data())
-                loop.close()
+                try:
+                    # Try to use existing event loop if available
+                    loop = asyncio.get_running_loop()
+                    # We're in an async context already, can't use run_until_complete
+                    # Use cached data if available
+                    if hasattr(self, '_last_real_data') and self._last_real_data:
+                        # Use cached data if it's recent (within 30 seconds)
+                        if 'timestamp' in self._last_real_data:
+                            age = (datetime.now(timezone.utc) - self._last_real_data['timestamp']).total_seconds()
+                            if age < 30:
+                                return self._last_real_data
+                    # Return placeholder, will fetch async in background
+                    asyncio.create_task(self._fetch_and_cache_market_data())
+                    return self._last_real_data if hasattr(self, '_last_real_data') else self._get_simulated_market_data()
+                except RuntimeError:
+                    # No event loop running, create one
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    real_data = loop.run_until_complete(self.market_data_fetcher.get_market_data())
+                    loop.close()
 
                 # Add sentiment from our analyzer
                 real_data['sentiment'] = self.latest_sentiment.get('sentiment_label', 'neutral') if self.latest_sentiment else 'neutral'
@@ -170,6 +187,36 @@ class EnhancedAITradingLab:
                 self.logger.error(f"Error getting real market data: {e}")
 
         # Fallback to simulated data (should rarely happen)
+        return self._get_simulated_market_data()
+
+    async def _get_market_data_async(self):
+        """Get REAL market data from exchanges (async version)"""
+        # Try to use real market data if available
+        if self.use_real_data and self.market_data_fetcher:
+            try:
+                real_data = await self.market_data_fetcher.get_market_data()
+
+                # Add sentiment from our analyzer
+                real_data['sentiment'] = self.latest_sentiment.get('sentiment_label', 'neutral') if self.latest_sentiment else 'neutral'
+
+                # Calculate volatility from real data
+                if real_data.get('price_history') and len(real_data['price_history']) > 10:
+                    prices = real_data['price_history'][-10:]
+                    avg = sum(prices) / len(prices)
+                    variance = sum((p - avg) ** 2 for p in prices) / len(prices)
+                    volatility_pct = (variance ** 0.5) / avg
+                    real_data['volatility'] = 'high' if volatility_pct > 0.02 else 'low' if volatility_pct < 0.01 else 'medium'
+                else:
+                    real_data['volatility'] = 'medium'
+
+                # Cache for next call
+                self._last_real_data = real_data
+                return real_data
+
+            except Exception as e:
+                self.logger.error(f"Error getting real market data: {e}")
+
+        # Fallback to simulated data
         return self._get_simulated_market_data()
 
     def _get_simulated_market_data(self):
@@ -246,7 +293,7 @@ class EnhancedAITradingLab:
     async def send_ai_insights(self):
         """Send AI-generated market insights"""
         try:
-            market_data = self._get_market_data()
+            market_data = await self._get_market_data_async()
 
             # Get comprehensive sentiment
             sentiment = await self.sentiment_analyzer.analyze_comprehensive_sentiment(
@@ -350,7 +397,7 @@ class EnhancedAITradingLab:
                 await self.fetch_real_time_intelligence()
 
                 # Get market data
-                market_data = self._get_market_data()
+                market_data = await self._get_market_data_async()
 
                 # Update sentiment
                 self.latest_sentiment = await self.sentiment_analyzer.analyze_comprehensive_sentiment(
@@ -506,7 +553,7 @@ class EnhancedAITradingLab:
         strategies = list(self.strategy_manager.strategies.values()) if hasattr(self.strategy_manager, 'strategies') else []
 
         # Get current market data to check quality
-        market_data = self._get_market_data()
+        market_data = await self._get_market_data_async()
 
         if strategies:
             total_pnl = sum(s.metrics.total_pnl for s in strategies if hasattr(s, 'metrics'))
