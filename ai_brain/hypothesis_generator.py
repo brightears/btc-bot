@@ -173,7 +173,7 @@ class HypothesisGenerator:
 
         return None
 
-    def _create_hypothesis_from_pattern(self, category: str, pattern: str, context: Dict) -> Dict:
+    def _create_hypothesis_from_pattern(self, category: str, pattern: str, context: Dict = None) -> Dict:
         """Create a specific hypothesis from a pattern"""
         hypothesis_id = hashlib.md5(f"{pattern}_{datetime.now(timezone.utc).isoformat()}".encode()).hexdigest()[:8]
 
@@ -184,8 +184,8 @@ class HypothesisGenerator:
             'pattern': pattern,
             'description': self._generate_description(category, pattern),
             'entry_conditions': self._generate_entry_conditions(category, pattern),
-            'exit_conditions': self._generate_exit_conditions(category, pattern),
-            'risk_parameters': self._generate_risk_parameters(),
+            'exit_conditions': self._generate_exit_conditions(category, pattern, context),
+            'risk_parameters': self._generate_risk_parameters(context),
             'confidence': random.randint(30, 70),  # Initial confidence
             'created_at': datetime.now(timezone.utc).isoformat(),
             'status': 'pending',
@@ -235,12 +235,34 @@ class HypothesisGenerator:
 
         return base_conditions
 
-    def _generate_exit_conditions(self, category: str, pattern: str) -> List[Dict]:
-        """Generate exit conditions for hypothesis"""
+    def _generate_exit_conditions(self, category: str, pattern: str, market_context: Dict = None) -> List[Dict]:
+        """Generate exit conditions based on REAL market volatility"""
+        # Use actual market volatility if available
+        if market_context and market_context.get('is_real_data'):
+            # Calculate ATR-based stops from real data
+            price_history = market_context.get('price_history', [])
+            if len(price_history) >= 14:
+                # Calculate Average True Range
+                atr = self._calculate_atr(price_history)
+                current_price = market_context.get('price', 100000)
+                atr_percent = (atr / current_price) * 100
+
+                # Use ATR for realistic stops
+                take_profit = min(3.0, atr_percent * 2)  # 2x ATR for TP, max 3%
+                stop_loss = min(1.5, atr_percent)  # 1x ATR for SL, max 1.5%
+            else:
+                # Conservative defaults if not enough data
+                take_profit = 1.0
+                stop_loss = 0.5
+        else:
+            # Conservative defaults when no real data
+            take_profit = 1.0
+            stop_loss = 0.5
+
         exit_conditions = [
-            {'type': 'take_profit', 'value': random.uniform(0.5, 2.0)},  # 0.5-2% TP
-            {'type': 'stop_loss', 'value': random.uniform(0.3, 1.0)},  # 0.3-1% SL
-            {'type': 'time_based', 'value': random.randint(4, 48)}  # 4-48 hours
+            {'type': 'take_profit', 'value': take_profit},
+            {'type': 'stop_loss', 'value': stop_loss},
+            {'type': 'time_based', 'value': 24}  # 24 hours default
         ]
 
         # Add pattern-specific exit
@@ -251,14 +273,43 @@ class HypothesisGenerator:
 
         return exit_conditions
 
-    def _generate_risk_parameters(self) -> Dict:
-        """Generate risk parameters for hypothesis"""
+    def _generate_risk_parameters(self, market_context: Dict = None) -> Dict:
+        """Generate risk parameters based on REAL market conditions"""
+        # Base position size on actual market conditions
+        if market_context and market_context.get('is_real_data'):
+            volume = market_context.get('volume', 1000000)
+            volatility = market_context.get('volatility', 'medium')
+
+            # Adjust position size based on liquidity
+            if volume > 10000000:  # High liquidity
+                max_position = 500
+            elif volume > 5000000:  # Medium liquidity
+                max_position = 300
+            else:  # Low liquidity
+                max_position = 100
+
+            # Adjust trades based on volatility
+            if volatility == 'high':
+                max_trades = 2  # Fewer trades in high volatility
+            elif volatility == 'low':
+                max_trades = 5  # More trades in low volatility
+            else:
+                max_trades = 3
+
+            # Required edge based on market conditions
+            required_edge = 0.5 if volatility == 'high' else 0.3
+        else:
+            # Conservative defaults without real data
+            max_position = 100
+            max_trades = 2
+            required_edge = 0.5
+
         return {
-            'max_position_size': random.uniform(100, 500),  # USDT
-            'max_daily_trades': random.randint(1, 5),
-            'max_correlation': 0.7,  # Max correlation with other strategies
-            'required_edge_bps': random.uniform(0.3, 1.0),
-            'min_liquidity': 1000000  # Min 1M daily volume
+            'max_position_size': max_position,
+            'max_daily_trades': max_trades,
+            'max_correlation': 0.7,
+            'required_edge_bps': required_edge,
+            'min_liquidity': 1000000
         }
 
     def generate_crazy_idea(self) -> Dict:
@@ -427,3 +478,17 @@ class HypothesisGenerator:
         # Sort by success count
         sorted_patterns = sorted(pattern_success.items(), key=lambda x: x[1], reverse=True)
         return [p[0] for p in sorted_patterns[:5]]  # Top 5 patterns
+
+    def _calculate_atr(self, price_history: List[float], period: int = 14) -> float:
+        """Calculate Average True Range from price history"""
+        if len(price_history) < period + 1:
+            return 0
+
+        true_ranges = []
+        for i in range(1, min(period + 1, len(price_history))):
+            high = max(price_history[i], price_history[i-1])
+            low = min(price_history[i], price_history[i-1])
+            true_range = high - low
+            true_ranges.append(true_range)
+
+        return sum(true_ranges) / len(true_ranges) if true_ranges else 0

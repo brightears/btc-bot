@@ -90,6 +90,24 @@ class EnhancedAITradingLab:
             self.use_real_data = False
             print("⚠️ Real market data unavailable, using simulated")
 
+        # Initialize REAL paper trading engine
+        try:
+            from ai_brain.paper_trading_engine import PaperTradingEngine
+            self.paper_trader = PaperTradingEngine(initial_balance=10000)
+            print("✅ Paper trading with REAL price movements")
+        except ImportError:
+            self.paper_trader = None
+            print("⚠️ Paper trading engine not available")
+
+        # Initialize data integrity validator
+        try:
+            from ai_brain.data_integrity_validator import DataIntegrityValidator
+            self.data_validator = DataIntegrityValidator()
+            print("✅ Data integrity validation enabled")
+        except ImportError:
+            self.data_validator = None
+            print("⚠️ Data validator not available")
+
     async def send_message(self, text: str, important: bool = False):
         """Send message to Telegram"""
         try:
@@ -155,37 +173,26 @@ class EnhancedAITradingLab:
         return self._get_simulated_market_data()
 
     def _get_simulated_market_data(self):
-        """Get simulated market data (fallback only)"""
-        base_price = 65000
-        variation = random.uniform(-500, 500)
+        """EMERGENCY ONLY - Returns safe fallback that prevents trading"""
+        self.logger.critical("NO REAL DATA AVAILABLE - TRADING DISABLED!")
 
-        # Generate historical data if not exists
-        if not hasattr(self, 'price_history'):
-            self.price_history = [base_price + random.uniform(-1000, 1000) for _ in range(20)]
-            self.volume_history = [random.uniform(800000, 1200000) for _ in range(20)]
-
-        # Add new price and volume
-        current_price = base_price + variation
-        current_volume = random.uniform(800000, 1200000)
-
-        self.price_history.append(current_price)
-        self.volume_history.append(current_volume)
-
-        # Keep only last 100 data points
-        self.price_history = self.price_history[-100:]
-        self.volume_history = self.volume_history[-100:]
-
+        # Return minimal safe data that will prevent any trading
         return {
             'timestamp': datetime.now(timezone.utc),
-            'price': current_price,
-            'volume': current_volume,
-            'funding_rate': random.uniform(-0.0002, 0.0002),
-            'sentiment': random.choice(['bullish', 'neutral', 'bearish']),
-            'price_history': self.price_history,
-            'volume_history': self.volume_history,
-            'volatility': 'medium',  # Can be calculated from price history
+            'price': 0,  # Invalid price to prevent trading
+            'volume': 0,
+            'funding_rate': 0,
+            'sentiment': 'unknown',
+            'price_history': [],
+            'volume_history': [],
+            'volatility': 'unknown',
             'is_real_data': False,
-            'data_quality': {'score': 0, 'issues': ['Using simulated data - DO NOT TRADE']}
+            'data_quality': {
+                'score': 0,
+                'issues': ['CRITICAL: No real market data available', 'Trading DISABLED for safety']
+            },
+            'error': 'NO_REAL_DATA',
+            'trading_allowed': False
         }
 
     async def fetch_real_time_intelligence(self):
@@ -357,18 +364,60 @@ class EnhancedAITradingLab:
                 # Update all strategies
                 if hasattr(self.strategy_manager, 'strategies'):
                     for strategy_id, strategy in self.strategy_manager.strategies.items():
-                        # Simulate strategy update with AI insights
-                        if hasattr(strategy, 'update_metrics'):
-                            # Enhanced decision making with AI
-                            if iteration % 5 == 0:
-                                # Use sentiment for win rate adjustment
-                                sentiment_boost = 0.1 if self.latest_sentiment['composite_score'] > 0.3 else 0
-                                is_win = random.random() > (0.45 - sentiment_boost)
-                                pnl = random.uniform(10, 150) if is_win else random.uniform(-50, -10)
+                        # Use REAL paper trading instead of random simulation
+                        if self.paper_trader and hasattr(strategy, 'analyze'):
+                            # CRITICAL: Validate data integrity before ANY trading
+                            if self.data_validator:
+                                data_valid, data_issues = self.data_validator.validate_market_data(market_data)
+                                if not data_valid:
+                                    self.logger.error(f"Data validation failed: {data_issues}")
+                                    # Skip this iteration - DO NOT TRADE ON BAD DATA
+                                    continue
 
-                                if hasattr(strategy.metrics, 'record_trade'):
-                                    strategy.metrics.record_trade(pnl)
-                                strategy.confidence_score = min(100, strategy.confidence_score + (0.7 if is_win else -0.2))
+                            # Get real trading signal from strategy
+                            signal = strategy.analyze(market_data)
+
+                            if signal and signal.action != 'hold':
+                                # Validate signal before execution
+                                if self.data_validator:
+                                    signal_valid, signal_issues = self.data_validator.validate_trading_signal(
+                                        {'action': signal.action, 'size': signal.size},
+                                        market_data
+                                    )
+                                    if not signal_valid:
+                                        self.logger.warning(f"Signal validation failed: {signal_issues}")
+                                        continue
+
+                                # Execute with REAL paper trading engine
+                                trade_result = self.paper_trader.execute_trade(
+                                    {
+                                        'action': signal.action,
+                                        'size': signal.size,
+                                        'stop_loss': getattr(signal, 'stop_loss', None),
+                                        'take_profit': getattr(signal, 'take_profit', None),
+                                        'strategy_id': strategy.id
+                                    },
+                                    market_data
+                                )
+
+                                # Update strategy metrics with REAL results
+                                if trade_result.get('success') and trade_result.get('pnl_usdt') is not None:
+                                    real_pnl = trade_result['pnl_usdt']
+                                    if hasattr(strategy.metrics, 'record_trade'):
+                                        strategy.metrics.record_trade(real_pnl)
+
+                                    # Adjust confidence based on REAL performance
+                                    if real_pnl > 0:
+                                        strategy.confidence_score = min(100, strategy.confidence_score + 0.5)
+                                    else:
+                                        strategy.confidence_score = max(0, strategy.confidence_score - 0.3)
+
+                        # Check stop losses and take profits with REAL prices
+                        if self.paper_trader:
+                            triggered_orders = self.paper_trader.check_stop_loss_take_profit(market_data)
+                            for order in triggered_orders:
+                                if order['result'].get('pnl_usdt'):
+                                    self.logger.info(f"Order triggered: {order['type']} - P&L: ${order['result']['pnl_usdt']:.2f}")
 
                 # Send AI insights every 2 hours
                 if iteration % 120 == 0:
@@ -486,7 +535,22 @@ class EnhancedAITradingLab:
         msg += f"• Strategies: {len(strategies)}\n"
         msg += f"• Ready for Live: {ready}\n"
         msg += f"• Avg Confidence: {avg_confidence:.1f}%\n"
-        msg += f"• Combined P&L: ${total_pnl:.2f}\n\n"
+
+        # Add REAL paper trading performance
+        if self.paper_trader:
+            metrics = self.paper_trader.get_performance_metrics()
+            msg += f"\n*Paper Trading (REAL):*\n"
+            msg += f"• Balance: ${metrics['current_balance']:.2f}\n"
+            msg += f"• P&L: ${metrics['total_pnl']:+.2f} ({metrics['roi']:+.1f}%)\n"
+            msg += f"• Win Rate: {metrics['win_rate']:.1f}%\n"
+            msg += f"• Trades: {metrics['winning_trades']}W/{metrics['losing_trades']}L\n"
+            msg += f"• Fees Paid: ${metrics['total_fees_paid']:.2f}\n"
+            if metrics['open_positions'] > 0:
+                msg += f"• Open Positions: {metrics['open_positions']}\n"
+        else:
+            msg += f"• Combined P&L: ${total_pnl:.2f}\n"
+
+        msg += "\n"
 
         # Add backtest statistics if available
         if hasattr(self.strategy_manager, 'backtest_results') and self.strategy_manager.backtest_results:
