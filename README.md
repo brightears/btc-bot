@@ -8,6 +8,12 @@ The AI Trading Lab is an advanced, self-learning cryptocurrency trading system t
 
 - **AI-Powered Strategy Generation**: Continuously generates and tests new trading hypotheses
 - **Self-Learning System**: Learns from market patterns and improves over time
+- **Real Market Data**: Uses live Binance data - NO simulated/fake data
+- **Paper Trading**: Realistic simulation with actual market prices and fees
+- **Data Integrity Validation**: Prevents AI hallucination by validating all data
+- **Enhanced AI Intelligence**: Gemini 2.5 Flash LLM, news monitoring, on-chain analysis
+- **Backtesting Infrastructure**: Historical data analysis for strategy validation
+- **Experience Replay Buffer**: Deep reinforcement learning with prioritized replay
 - **Parallel Strategy Testing**: Tests multiple strategies simultaneously in dry-run mode
 - **Delta-Neutral Funding Carry**: Core strategy using long spot + short perpetual positions
 - **24/7 VPS Operation**: Runs continuously with auto-restart monitoring
@@ -17,11 +23,14 @@ The AI Trading Lab is an advanced, self-learning cryptocurrency trading system t
 ## System Status
 
 **Current Deployment:**
-- **Status**: ✅ Running on VPS (5.223.55.219)
-- **Version**: v1.0-ai-lab-deployed
-- **Mode**: Dry-run (testing strategies)
+- **Status**: ✅ Running Enhanced AI Lab on VPS (5.223.55.219)
+- **Version**: v2.0-real-data-implementation
+- **Mode**: Paper Trading with Real Market Data
+- **Data Source**: Binance API (Real-time)
+- **AI Features**: Gemini 2.5 Flash, News Analysis, On-chain Monitoring
 - **Monitoring**: Auto-restart enabled
 - **Notifications**: Telegram active
+- **Last Update**: 2025-09-22 (Async fixes deployed)
 
 ## Quick Start
 

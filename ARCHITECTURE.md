@@ -16,18 +16,45 @@ The intelligence layer that drives strategy discovery and optimization.
   - Market regime identification
   - Historical pattern database
   - Confidence calculation algorithms
+  - Experience replay buffer (10,000 capacity) with prioritized sampling
 
 - **Hypothesis Generator** (`hypothesis_generator.py`)
-  - Creative strategy generation
+  - Creative strategy generation with Gemini 2.5 Flash LLM
   - Research-based hypothesis creation
   - "Crazy idea" exploration for edge discovery
-  - Parameter optimization suggestions
+  - Parameter optimization using real volatility (ATR-based)
+  - Take-profit and stop-loss based on actual market data
 
 - **Strategy Evaluator** (`strategy_evaluator.py`)
   - Performance metric calculation
   - Risk-adjusted return analysis
   - Statistical significance testing
   - Strategy ranking and selection
+
+- **Real-time Market Data** (`realtime_market_data.py`)
+  - Live Binance API integration for spot and futures
+  - Real funding rates and order book data
+  - NO simulated data - all prices are real
+  - Automatic data quality scoring
+
+- **Paper Trading Engine** (`paper_trading_engine.py`)
+  - Realistic simulation using actual market prices
+  - Real exchange fees (0.1% maker/taker)
+  - Slippage modeling based on order book depth
+  - P&L calculation with actual price movements
+
+- **Data Integrity Validator** (`data_integrity_validator.py`)
+  - Prevents AI hallucination by validating all data
+  - Blocks trading if real data unavailable
+  - Price spike detection
+  - Volume and funding rate validation
+
+- **Enhanced Intelligence** (New Components)
+  - **LLM Analyzer** (`llm_analyzer.py`): Gemini 2.5 Flash integration
+  - **News Fetcher** (`news_fetcher.py`): Real-time crypto news monitoring
+  - **Sentiment Analyzer** (`sentiment_analyzer.py`): Market sentiment analysis
+  - **On-chain Monitor** (`onchain_monitor.py`): Whale activity tracking
+  - **Historical Data Fetcher** (`historical_data_fetcher.py`): Backtesting data
 
 ### 2. Trading Execution Layer (`src/`)
 
