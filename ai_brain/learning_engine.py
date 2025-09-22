@@ -153,6 +153,17 @@ class LearningEngine:
         self.learning_rate = 0.1
         self.exploration_rate = 0.2  # How often to try new things
 
+        # Initialize Experience Replay Buffer
+        try:
+            from .experience_replay import PrioritizedReplayBuffer, Experience
+            self.replay_buffer = PrioritizedReplayBuffer(capacity=10000)
+            self.Experience = Experience
+            self.has_replay = True
+        except ImportError:
+            self.replay_buffer = None
+            self.has_replay = False
+            print("Experience replay not available, continuing without it")
+
     def load_insights(self) -> Dict:
         """Load AI insights from disk"""
         if self.insights_db.exists():
@@ -260,6 +271,41 @@ class LearningEngine:
         profit = trade_data.get('profit', 0)
         patterns = trade_data.get('patterns', {})
 
+        # Store experience in replay buffer if available
+        if self.has_replay and self.replay_buffer:
+            state = trade_data.get('state', {})
+            action = trade_data.get('action', 'hold')
+            next_state = trade_data.get('next_state', state)
+            done = trade_data.get('done', False)
+
+            # Create experience
+            experience = self.Experience(
+                state=state,
+                action=action,
+                reward=profit,
+                next_state=next_state,
+                done=done,
+                metadata={
+                    'strategy': strategy_id,
+                    'patterns': patterns,
+                    'timestamp': datetime.now(timezone.utc).isoformat()
+                }
+            )
+
+            # Add with priority based on profit magnitude
+            priority = abs(profit) + 0.1  # Higher priority for larger profits/losses
+            self.replay_buffer.add(experience, priority)
+
+            # Learn from similar past experiences
+            similar_experiences = self.replay_buffer.find_similar_experiences(state, k=5)
+            if similar_experiences:
+                # Adjust learning based on similar past outcomes
+                avg_reward = sum(exp.reward for exp in similar_experiences) / len(similar_experiences)
+                if avg_reward > 0:
+                    self.learning_rate = min(0.2, self.learning_rate * 1.1)  # Learn faster from success
+                else:
+                    self.learning_rate = max(0.05, self.learning_rate * 0.95)  # Learn slower from failure
+
         # Update strategy performance tracking
         if strategy_id not in self.insights['strategy_performance']:
             self.insights['strategy_performance'][strategy_id] = {
@@ -332,6 +378,21 @@ class LearningEngine:
             'recent_discoveries': self.insights['discovered_edges'][-3:] if self.insights['discovered_edges'] else [],
             'optimization_suggestions': self._generate_optimization_suggestions()
         }
+
+        # Add experience replay insights if available
+        if self.has_replay and self.replay_buffer and len(self.replay_buffer) > 0:
+            replay_stats = self.replay_buffer.get_recent_performance(100)
+            insights['experience_memory'] = {
+                'total_experiences': len(self.replay_buffer),
+                'recent_win_rate': replay_stats.get('win_rate', 0),
+                'recent_avg_reward': replay_stats.get('avg_reward', 0),
+                'sharpe_ratio': replay_stats.get('sharpe_ratio', 0)
+            }
+
+            # Get strategy performance from replay buffer
+            strategy_perf = self.replay_buffer.get_strategy_performance()
+            if strategy_perf:
+                insights['strategy_memory'] = strategy_perf
 
         return insights
 
