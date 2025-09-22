@@ -327,6 +327,31 @@ class EnhancedAITradingLab:
                 if iteration % 120 == 0:
                     await self.send_ai_insights()
 
+                # Strategy evaluation (every hour)
+                if iteration % 60 == 0:
+                    print("🔬 Running strategy evaluation...")
+                    if hasattr(self.strategy_manager, 'evaluate_strategies'):
+                        evaluation_report = self.strategy_manager.evaluate_strategies()
+                        if evaluation_report:
+                            # Send evaluation report
+                            msg = "📊 *Strategy Evaluation Report*\n\n"
+                            for sid, eval_data in evaluation_report.items():
+                                msg += f"*{eval_data.get('name', sid)}:*\n"
+                                msg += f"• Live Win Rate: {eval_data.get('live_win_rate', 0):.1f}%\n"
+                                msg += f"• Backtest Win Rate: {eval_data.get('backtest_win_rate', 0):.1f}%\n"
+                                msg += f"• Status: {'✅ Beating backtest' if eval_data.get('beating_backtest') else '⚠️ Underperforming'}\n\n"
+                            await self.send_message(msg[:4000])  # Truncate if too long
+
+                # Launch new experiments (every 2 hours)
+                if iteration % 120 == 0:
+                    print("🧪 Launching new experiment...")
+                    if hasattr(self.strategy_manager, 'launch_new_experiment'):
+                        try:
+                            await self.strategy_manager.launch_new_experiment()
+                            await self.send_message("🚀 *New Strategy Experiment Launched!*\nBacktesting in progress...")
+                        except Exception as e:
+                            print(f"Error launching experiment: {e}")
+
                 # Generate AI hypothesis every hour
                 if (now - self.last_hypothesis).total_seconds() > 3600:
                     await self.generate_ai_hypothesis(market_data)
