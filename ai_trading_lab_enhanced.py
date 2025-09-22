@@ -79,6 +79,17 @@ class EnhancedAITradingLab:
         self.latest_news = []
         self.latest_onchain = None
 
+        # Initialize REAL market data fetcher
+        try:
+            from ai_brain.realtime_market_data import RealtimeMarketData
+            self.market_data_fetcher = RealtimeMarketData()
+            self.use_real_data = True
+            print("✅ Using REAL market data from Binance")
+        except ImportError:
+            self.market_data_fetcher = None
+            self.use_real_data = False
+            print("⚠️ Real market data unavailable, using simulated")
+
     async def send_message(self, text: str, important: bool = False):
         """Send message to Telegram"""
         try:
@@ -110,7 +121,41 @@ class EnhancedAITradingLab:
             print("📊 Starting with Funding Carry strategy only")
 
     def _get_market_data(self):
-        """Get simulated market data with variation"""
+        """Get REAL market data from exchanges (synchronous wrapper)"""
+        # Try to use real market data if available
+        if self.use_real_data and self.market_data_fetcher:
+            # Run async function in sync context
+            try:
+                import asyncio
+                loop = asyncio.new_event_loop()
+                real_data = loop.run_until_complete(self.market_data_fetcher.get_market_data())
+                loop.close()
+
+                # Add sentiment from our analyzer
+                real_data['sentiment'] = self.latest_sentiment.get('sentiment_label', 'neutral') if self.latest_sentiment else 'neutral'
+
+                # Calculate volatility from real data
+                if real_data.get('price_history') and len(real_data['price_history']) > 10:
+                    prices = real_data['price_history'][-10:]
+                    avg = sum(prices) / len(prices)
+                    variance = sum((p - avg) ** 2 for p in prices) / len(prices)
+                    volatility_pct = (variance ** 0.5) / avg
+                    real_data['volatility'] = 'high' if volatility_pct > 0.02 else 'low' if volatility_pct < 0.01 else 'medium'
+                else:
+                    real_data['volatility'] = 'medium'
+
+                # Cache for next call
+                self._last_real_data = real_data
+                return real_data
+
+            except Exception as e:
+                self.logger.error(f"Error getting real market data: {e}")
+
+        # Fallback to simulated data (should rarely happen)
+        return self._get_simulated_market_data()
+
+    def _get_simulated_market_data(self):
+        """Get simulated market data (fallback only)"""
         base_price = 65000
         variation = random.uniform(-500, 500)
 
@@ -138,7 +183,9 @@ class EnhancedAITradingLab:
             'sentiment': random.choice(['bullish', 'neutral', 'bearish']),
             'price_history': self.price_history,
             'volume_history': self.volume_history,
-            'volatility': 'medium'  # Can be calculated from price history
+            'volatility': 'medium',  # Can be calculated from price history
+            'is_real_data': False,
+            'data_quality': {'score': 0, 'issues': ['Using simulated data - DO NOT TRADE']}
         }
 
     async def fetch_real_time_intelligence(self):
@@ -409,6 +456,9 @@ class EnhancedAITradingLab:
         now = datetime.now(timezone.utc)
         strategies = list(self.strategy_manager.strategies.values()) if hasattr(self.strategy_manager, 'strategies') else []
 
+        # Get current market data to check quality
+        market_data = self._get_market_data()
+
         if strategies:
             total_pnl = sum(s.metrics.total_pnl for s in strategies if hasattr(s, 'metrics'))
             avg_confidence = sum(s.confidence_score for s in strategies if hasattr(s, 'confidence_score')) / max(len(strategies), 1)
@@ -421,6 +471,16 @@ class EnhancedAITradingLab:
         insights = self.learning_engine.get_market_insights()
 
         msg = f"📊 *Enhanced Hourly Report - {now.strftime('%H:%M UTC')}*\n\n"
+
+        # Add data source indicator
+        if market_data.get('is_real_data', True):
+            data_quality = market_data.get('data_quality', {})
+            quality_score = data_quality.get('score', 100)
+            quality_emoji = "🟢" if quality_score >= 80 else "🟡" if quality_score >= 50 else "🔴"
+            msg += f"*Data Source:* {quality_emoji} Real Market Data (Quality: {quality_score}%)\n"
+            msg += f"*BTC Price:* ${market_data.get('price', 0):,.2f}\n\n"
+        else:
+            msg += f"*Data Source:* ⚠️ SIMULATED DATA - DO NOT TRADE\n\n"
 
         msg += f"*Performance:*\n"
         msg += f"• Strategies: {len(strategies)}\n"

@@ -44,6 +44,21 @@ class AITradingLab:
         self.auto_approve_threshold = 85
         self.max_risk_per_strategy = 1000
 
+        # Initialize logger for error messages
+        import logging
+        self.logger = logging.getLogger(__name__)
+
+        # Initialize REAL market data fetcher
+        try:
+            from ai_brain.realtime_market_data import RealtimeMarketData
+            self.market_data_fetcher = RealtimeMarketData()
+            self.use_real_data = True
+            print("✅ Using REAL market data from Binance")
+        except ImportError:
+            self.market_data_fetcher = None
+            self.use_real_data = False
+            print("⚠️ Real market data unavailable, using simulated")
+
     async def send_message(self, text: str, important: bool = False):
         """Send message to Telegram"""
         try:
@@ -68,14 +83,34 @@ class AITradingLab:
         # Experimental strategies will be added via the AI loop
         print("📊 Starting with Funding Carry strategy")
 
-    def _get_market_data(self):
-        """Get simulated market data"""
+    async def _get_market_data(self):
+        """Get REAL market data from exchanges"""
+        # Try to use real market data if available
+        if self.use_real_data and self.market_data_fetcher:
+            # Run async function directly since we're in an async context
+            try:
+                real_data = await self.market_data_fetcher.get_market_data()
+
+                # Ensure required fields exist
+                if 'sentiment' not in real_data:
+                    real_data['sentiment'] = 'neutral'
+
+                # Cache for next call
+                self._last_real_data = real_data
+                return real_data
+
+            except Exception as e:
+                self.logger.error(f"Error getting real market data: {e}")
+
+        # Fallback to simulated data (should rarely happen)
         return {
             'timestamp': datetime.now(timezone.utc),
             'price': 65000 + (datetime.now().second * 10),  # Slight variation
             'volume': 1000000,
             'funding_rate': 0.0001,
-            'sentiment': 'neutral'
+            'sentiment': 'neutral',
+            'is_real_data': False,
+            'data_quality': {'score': 0, 'issues': ['Using simulated data - DO NOT TRADE']}
         }
 
     async def send_startup_report(self):
@@ -122,7 +157,7 @@ class AITradingLab:
                 now = datetime.now()
 
                 # Get market data
-                market_data = self._get_market_data()
+                market_data = await self._get_market_data()
 
                 # AI analysis
                 analysis = self.learning_engine.analyze_market(market_data)
@@ -190,13 +225,27 @@ class AITradingLab:
 
                     insights = self.learning_engine.get_market_insights()
 
+                    # Add data quality info
+                    data_quality_msg = ""
+                    if hasattr(self, '_last_real_data') and self._last_real_data:
+                        quality = self._last_real_data.get('data_quality', {})
+                        is_real = self._last_real_data.get('is_real_data', False)
+                        price = self._last_real_data.get('price', 0)
+
+                        if is_real:
+                            data_quality_msg = f"\n💚 Data: REAL (${price:.0f})"
+                            if quality.get('issues'):
+                                data_quality_msg += f"\n⚠️ Issues: {', '.join(quality['issues'])}"
+                        else:
+                            data_quality_msg = "\n🔴 Data: SIMULATED - NO TRADING"
+
                     await self.send_message(
                         f"📊 *Hourly AI Report*\n\n"
                         f"Strategies Active: {len(strategies)}\n"
                         f"Ready for Live: {ready}\n"
                         f"Combined P&L: ${total_pnl:.2f}\n"
-                        f"Patterns Found: {insights['patterns_learned']}\n"
-                        f"Market State: {insights['current_market_state']}"
+                        f"Patterns Found: {insights['patterns_learned']}"
+                        f"{data_quality_msg}"
                     )
                     last_hourly_report = now
 
