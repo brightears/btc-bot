@@ -6,12 +6,14 @@ Real-time market analysis, news processing, and intelligent insights
 import os
 import json
 import asyncio
+import time
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 import google.generativeai as genai
 from dotenv import load_dotenv
 import logging
+from functools import wraps
 
 load_dotenv()
 
@@ -24,16 +26,21 @@ class GeminiAnalyzer:
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY not found in environment variables")
 
+        # Rate limiting: max 60 requests per minute
+        self.max_requests_per_minute = 60
+        self.request_times = []
+        self.rate_limit_window = 60  # seconds
+
         # Configure Gemini
         genai.configure(api_key=self.api_key)
 
         # Use Gemini 2.5 Flash for speed and cost efficiency
-        self.model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        self.model = genai.GenerativeModel('gemini-2.5-flash')
 
         # Enable grounding with Google Search (free up to 1,500 requests/day)
         self.grounded_model = genai.GenerativeModel(
-            'gemini-2.0-flash-exp',
-            tools='google_search_retrieval'
+            'gemini-2.5-flash',
+            tools='google_search'
         )
 
         # Cache for recent analyses
@@ -42,6 +49,59 @@ class GeminiAnalyzer:
 
         # Set up logging
         self.logger = logging.getLogger(__name__)
+
+        # Retry configuration
+        self.max_retries = 3
+        self.retry_delay = 1  # Initial delay in seconds
+
+    async def _check_rate_limit(self):
+        """Check and enforce rate limiting"""
+        current_time = time.time()
+        # Remove old requests outside the window
+        self.request_times = [t for t in self.request_times
+                             if current_time - t < self.rate_limit_window]
+
+        if len(self.request_times) >= self.max_requests_per_minute:
+            # Calculate wait time
+            oldest_request = min(self.request_times)
+            wait_time = self.rate_limit_window - (current_time - oldest_request) + 1
+            self.logger.info(f"Rate limit reached, waiting {wait_time:.1f}s")
+            await asyncio.sleep(wait_time)
+
+        self.request_times.append(current_time)
+
+    async def _call_with_retry(self, func, *args, **kwargs):
+        """Call a function with retry logic and exponential backoff"""
+        last_error = None
+        for attempt in range(self.max_retries):
+            try:
+                # Check rate limit before making request
+                await self._check_rate_limit()
+
+                # Make the actual call
+                result = await func(*args, **kwargs)
+                return result
+
+            except Exception as e:
+                last_error = e
+                error_str = str(e)
+
+                # Check if it's a quota error
+                if "quota" in error_str.lower() or "429" in error_str:
+                    self.logger.warning(f"Quota error on attempt {attempt + 1}: {error_str[:100]}")
+                    # For quota errors, wait longer
+                    wait_time = self.retry_delay * (2 ** attempt) * 5  # 5x longer for quota
+                else:
+                    self.logger.warning(f"Error on attempt {attempt + 1}: {error_str[:100]}")
+                    wait_time = self.retry_delay * (2 ** attempt)
+
+                if attempt < self.max_retries - 1:
+                    self.logger.info(f"Retrying in {wait_time}s...")
+                    await asyncio.sleep(wait_time)
+                else:
+                    self.logger.error(f"Max retries reached. Last error: {error_str}")
+
+        raise last_error
 
     async def analyze_news(self, news_items: List[Dict]) -> Dict:
         """Analyze news sentiment and impact on market"""
@@ -204,14 +264,20 @@ class GeminiAnalyzer:
             return 'Ranging'
 
     async def _async_generate(self, prompt: str) -> Any:
-        """Async wrapper for Gemini generation"""
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self.model.generate_content, prompt)
+        """Async wrapper for Gemini generation with retry logic"""
+        async def _generate():
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(None, self.model.generate_content, prompt)
+
+        return await self._call_with_retry(_generate)
 
     async def _async_generate_grounded(self, prompt: str) -> Any:
-        """Async wrapper for grounded Gemini generation"""
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self.grounded_model.generate_content, prompt)
+        """Async wrapper for grounded Gemini generation with retry logic"""
+        async def _generate():
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(None, self.grounded_model.generate_content, prompt)
+
+        return await self._call_with_retry(_generate)
 
     def _parse_json_response(self, text: str) -> Dict:
         """Parse JSON from Gemini response"""

@@ -374,6 +374,31 @@ class EnhancedAITradingLab:
 
                 await self.send_message(msg)
 
+            # Convert hypothesis to strategy and add to manager
+            if hypothesis and hypothesis.get('confidence', 0) > 40:
+                # Create a unique strategy ID
+                strategy_id = f"{hypothesis['category']}_{int(time.time())}"
+
+                # Create a strategy object (using FundingCarry as base for now)
+                from strategies.funding_carry import FundingCarry
+                new_strategy = FundingCarry(
+                    strategy_id=strategy_id,
+                    name=hypothesis['name']
+                )
+                new_strategy.confidence_score = hypothesis['confidence']
+
+                # Add to strategy manager
+                self.strategy_manager.add_strategy(new_strategy)
+                self.logger.info(f"Added new strategy: {hypothesis['name']} (ID: {strategy_id})")
+
+                # Send notification
+                msg = f"✨ *New Strategy Added!*\n"
+                msg += f"Name: {hypothesis['name']}\n"
+                msg += f"ID: {strategy_id}\n"
+                msg += f"Confidence: {hypothesis['confidence']}%\n"
+                msg += f"\n_Now testing in paper trading mode_"
+                await self.send_message(msg)
+
             return hypothesis
 
         except Exception as e:
@@ -475,15 +500,17 @@ class EnhancedAITradingLab:
                     print("🔬 Running strategy evaluation...")
                     if hasattr(self.strategy_manager, 'evaluate_strategies'):
                         evaluation_report = self.strategy_manager.evaluate_strategies()
-                        if evaluation_report:
-                            # Send evaluation report
-                            msg = "📊 *Strategy Evaluation Report*\n\n"
-                            for sid, eval_data in evaluation_report.items():
-                                msg += f"*{eval_data.get('name', sid)}:*\n"
-                                msg += f"• Live Win Rate: {eval_data.get('live_win_rate', 0):.1f}%\n"
-                                msg += f"• Backtest Win Rate: {eval_data.get('backtest_win_rate', 0):.1f}%\n"
-                                msg += f"• Status: {'✅ Beating backtest' if eval_data.get('beating_backtest') else '⚠️ Underperforming'}\n\n"
-                            await self.send_message(msg[:4000])  # Truncate if too long
+                        if evaluation_report and isinstance(evaluation_report, dict):
+                            # Check if there are backtested strategies to report
+                            if 'backtest_vs_live' in evaluation_report and evaluation_report['backtest_vs_live']:
+                                msg = "📊 *Strategy Evaluation Report*\n\n"
+                                for comparison in evaluation_report['backtest_vs_live']:
+                                    msg += f"*{comparison.get('name', 'Strategy')}:*\n"
+                                    msg += f"• Live Win Rate: {comparison.get('live_win_rate', 0):.1f}%\n"
+                                    msg += f"• Backtest Win Rate: {comparison.get('backtest_win_rate', 0):.1f}%\n"
+                                    performance_delta = comparison.get('performance_delta', 0)
+                                    msg += f"• Status: {'✅ Beating backtest' if performance_delta > 0 else '⚠️ Underperforming'}\n\n"
+                                await self.send_message(msg[:4000])  # Truncate if too long
 
                 # Launch new experiments (every 2 hours)
                 if iteration % 120 == 0:

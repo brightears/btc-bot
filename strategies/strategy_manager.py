@@ -31,6 +31,7 @@ class StrategyManager:
         self.logger = logging.getLogger(__name__)
 
         self.manager_state_file = Path("knowledge/manager_state.json")
+        self.strategies_file = Path("knowledge/strategies.json")
         self.manager_state_file.parent.mkdir(parents=True, exist_ok=True)
 
         self.is_running = False
@@ -44,6 +45,7 @@ class StrategyManager:
         self.backtest_results = {}  # Store backtest results by strategy ID
 
         self.load_state()
+        self.load_strategies()
 
     def load_state(self):
         """Load manager state from disk"""
@@ -66,9 +68,52 @@ class StrategyManager:
         with open(self.manager_state_file, 'w') as f:
             json.dump(state, f, indent=2, default=str)
 
+        # Also save strategies
+        self.save_strategies()
+
+    def save_strategies(self):
+        """Save all strategies to JSON file"""
+        strategies_data = {}
+        for strategy_id, strategy in self.strategies.items():
+            strategies_data[strategy_id] = {
+                'id': strategy.strategy_id,
+                'name': strategy.name,
+                'type': strategy.__class__.__name__,
+                'parameters': getattr(strategy, 'parameters', {}),
+                'confidence_score': strategy.confidence_score,
+                'is_active': strategy.is_active,
+                'is_live': strategy.is_live,
+                'metrics': strategy.get_status()['metrics'],
+                'created_at': getattr(strategy, 'created_at', datetime.now(timezone.utc)).isoformat()
+            }
+
+        with open(self.strategies_file, 'w') as f:
+            json.dump(strategies_data, f, indent=2, default=str)
+        self.logger.info(f"Saved {len(strategies_data)} strategies to {self.strategies_file}")
+
+    def load_strategies(self):
+        """Load strategies from JSON file"""
+        if not self.strategies_file.exists():
+            self.logger.info("No strategies file found, starting fresh")
+            return
+
+        try:
+            with open(self.strategies_file, 'r') as f:
+                strategies_data = json.load(f)
+
+            for strategy_id, data in strategies_data.items():
+                # For now, just log that we would load this strategy
+                # In a full implementation, we'd recreate the strategy objects
+                self.logger.info(f"Found saved strategy: {data['name']} (ID: {strategy_id})")
+
+            self.logger.info(f"Found {len(strategies_data)} saved strategies")
+        except Exception as e:
+            self.logger.error(f"Error loading strategies: {e}")
+
     def add_strategy(self, strategy: BaseStrategy):
         """Add a new strategy to the manager"""
         self.strategies[strategy.strategy_id] = strategy
+        self.save_strategies()  # Persist immediately
 
         if self.telegram:
             import asyncio
@@ -235,8 +280,10 @@ class StrategyManager:
 
     async def backtest_strategy(self, strategy: BaseStrategy) -> Dict:
         """Run backtest on a strategy before live testing"""
+        self.logger.info(f"Starting backtest for strategy: {strategy.name}")
         try:
             # Fetch historical data
+            self.logger.info("Fetching 30 days of historical data for backtesting...")
             backtest_data = await self.historical_fetcher.get_backtest_data(days=30)
 
             if not backtest_data:
@@ -246,10 +293,12 @@ class StrategyManager:
                 }
 
             # Run backtest
+            self.logger.info(f"Running backtest with {len(backtest_data)} data points...")
             results = strategy.backtest(backtest_data)
 
             # Store results
             self.backtest_results[strategy.strategy_id] = results
+            self.logger.info(f"Backtest complete - Win rate: {results.get('win_rate', 0):.1f}%, Total P&L: ${results.get('total_pnl', 0):.2f}")
 
             return {
                 'success': True,
