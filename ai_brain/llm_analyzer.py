@@ -38,10 +38,8 @@ class GeminiAnalyzer:
         self.model = genai.GenerativeModel('gemini-2.5-flash')
 
         # Enable grounding with Google Search (free up to 1,500 requests/day)
-        self.grounded_model = genai.GenerativeModel(
-            'gemini-2.5-flash',
-            tools='google_search'
-        )
+        # Note: Google Search grounding is now done via prompt, not tools parameter
+        self.grounded_model = genai.GenerativeModel('gemini-2.5-flash')
 
         # Cache for recent analyses
         self.analysis_cache = {}
