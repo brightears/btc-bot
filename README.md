@@ -8,29 +8,35 @@ The AI Trading Lab is an advanced, self-learning cryptocurrency trading system t
 
 - **AI-Powered Strategy Generation**: Continuously generates and tests new trading hypotheses
 - **Self-Learning System**: Learns from market patterns and improves over time
+- **Persistent Memory**: Maintains learning across restarts (strategies.json, experience_replay.pkl)
 - **Real Market Data**: Uses live Binance data - NO simulated/fake data
 - **Paper Trading**: Realistic simulation with actual market prices and fees
 - **Data Integrity Validation**: Prevents AI hallucination by validating all data
 - **Enhanced AI Intelligence**: Gemini 2.5 Flash LLM, news monitoring, on-chain analysis
 - **Backtesting Infrastructure**: Historical data analysis for strategy validation
-- **Experience Replay Buffer**: Deep reinforcement learning with prioritized replay
+- **Experience Replay Buffer**: Deep reinforcement learning with 10,000 capacity buffer
+- **Market Regime Detection**: Identifies Bull/Bear/Ranging/Volatile markets
+- **Sentiment Correlation**: Learns news impact on price movements
 - **Parallel Strategy Testing**: Tests multiple strategies simultaneously in dry-run mode
 - **Delta-Neutral Funding Carry**: Core strategy using long spot + short perpetual positions
 - **24/7 VPS Operation**: Runs continuously with auto-restart monitoring
-- **Telegram Integration**: Hourly reports and 6-hour heartbeat notifications
+- **Telegram Integration**: Real-time updates every 2 minutes
+- **48-Hour Validation**: Paper trades before recommending live trading
 - **Double-Gated Safety**: Dry-run by default with manual approval for live trading
 
 ## System Status
 
 **Current Deployment:**
 - **Status**: ✅ Running Enhanced AI Lab on VPS (5.223.55.219)
-- **Version**: v2.0-real-data-implementation
+- **Version**: v2.1-enhanced-ai-persistent-learning
 - **Mode**: Paper Trading with Real Market Data
 - **Data Source**: Binance API (Real-time)
-- **AI Features**: Gemini 2.5 Flash, News Analysis, On-chain Monitoring
+- **AI Model**: Gemini 2.5 Flash (Company Account)
+- **Learning**: Continuous with Persistent Memory
+- **Features**: News Analysis, On-chain Monitoring, Hypothesis Generation
 - **Monitoring**: Auto-restart enabled
-- **Notifications**: Telegram active
-- **Last Update**: 2025-09-22 (Async fixes deployed)
+- **Notifications**: Telegram active (every 2 minutes)
+- **Last Update**: January 23, 2025 (API migration, learning persistence)
 
 ## Quick Start
 
