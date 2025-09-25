@@ -56,55 +56,120 @@ class PaperTradingEngine:
         Returns:
             Trade execution result
         """
+        action = signal.get('action', 'hold')
+        strategy_id = signal.get('strategy_id', 'unknown')
+        size_usdt = signal.get('size', 0)
+
+        self.logger.info(f"🎯 PAPER TRADING ENGINE - TRADE EXECUTION ATTEMPT:")
+        self.logger.info(f"   Strategy ID: {strategy_id}")
+        self.logger.info(f"   Action: {action.upper()}")
+        self.logger.info(f"   Size: ${size_usdt:,.2f}")
+        self.logger.info(f"   Current Balance: ${self.balance:,.2f}")
+        self.logger.info(f"   Open Positions: {len(self.positions)}")
+        self.logger.debug(f"Signal details: {signal}")
+        self.logger.debug(f"Market data keys: {list(market_data.keys())}")
+
         # Validate we have real data
-        if not market_data.get('is_real_data', False):
-            self.logger.error("REFUSING TO TRADE - No real market data!")
+        is_real_data = market_data.get('is_real_data', False)
+        self.logger.info(f"🔍 DATA VALIDATION CHECK:")
+        self.logger.info(f"   Real data available: {is_real_data}")
+        self.logger.info(f"   Data source: {market_data.get('source', 'unknown')}")
+
+        if not is_real_data:
+            self.logger.error("🚫 TRADE EXECUTION BLOCKED:")
+            self.logger.error(f"   Strategy: {strategy_id}")
+            self.logger.error(f"   Reason: No real market data available")
+            self.logger.error(f"   Safety check: Data validation failed")
             return {
                 'success': False,
                 'error': 'No real market data available',
-                'action': 'BLOCKED'
+                'action': 'BLOCKED',
+                'reason': 'Data safety check failed'
             }
 
         current_price = market_data.get('price', 0)
+        self.logger.info(f"💰 MARKET PRICE VALIDATION:")
+        self.logger.info(f"   Current BTC Price: ${current_price:,.2f}")
+        self.logger.info(f"   Bid Price: ${market_data.get('bid', current_price):,.2f}")
+        self.logger.info(f"   Ask Price: ${market_data.get('ask', current_price):,.2f}")
+
         if current_price <= 0:
-            self.logger.error(f"Invalid price: {current_price}")
+            self.logger.error(f"🚫 TRADE EXECUTION BLOCKED:")
+            self.logger.error(f"   Strategy: {strategy_id}")
+            self.logger.error(f"   Reason: Invalid market price: {current_price}")
             return {'success': False, 'error': 'Invalid market price'}
 
-        action = signal.get('action', 'hold')
-
         if action == 'buy':
+            self.logger.info("📈 EXECUTING BUY ORDER:")
             return self._execute_buy(signal, current_price, market_data)
         elif action == 'sell':
+            self.logger.info("📉 EXECUTING SELL ORDER:")
             return self._execute_sell(signal, current_price, market_data)
         elif action == 'close':
+            self.logger.info("🔚 EXECUTING POSITION CLOSE:")
             return self._close_position(signal, current_price, market_data)
         else:
+            self.logger.info(f"⏸️ HOLD ACTION - No trade executed")
+            self.logger.info(f"   Strategy: {strategy_id} chose to wait")
             return {'success': True, 'action': 'hold'}
 
     def _execute_buy(self, signal: Dict, price: float, market_data: Dict) -> Dict:
         """Execute a buy order with real price and fees"""
         size_usdt = signal.get('size', 100)
+        strategy_id = signal.get('strategy_id', 'unknown')
+
+        self.logger.info(f"💵 BUY ORDER PREPARATION:")
+        self.logger.info(f"   Strategy: {strategy_id}")
+        self.logger.info(f"   Requested Size: ${size_usdt:,.2f}")
+        self.logger.info(f"   Available Balance: ${self.balance:,.2f}")
 
         # Check balance
         if size_usdt > self.balance:
+            self.logger.error(f"🚫 BUY ORDER REJECTED:")
+            self.logger.error(f"   Strategy: {strategy_id}")
+            self.logger.error(f"   Requested: ${size_usdt:,.2f}")
+            self.logger.error(f"   Available: ${self.balance:,.2f}")
+            self.logger.error(f"   Shortfall: ${size_usdt - self.balance:,.2f}")
             return {'success': False, 'error': 'Insufficient balance'}
 
         # Calculate actual execution price with slippage
         ask_price = market_data.get('ask', price)
         execution_price = ask_price * (1 + self.slippage)
 
+        self.logger.info(f"💰 BUY ORDER PRICING:")
+        self.logger.info(f"   Base Price: ${price:,.2f}")
+        self.logger.info(f"   Ask Price: ${ask_price:,.2f}")
+        self.logger.info(f"   Execution Price (with {self.slippage*100:.2f}% slippage): ${execution_price:,.2f}")
+
         # Calculate fees
         fee = size_usdt * self.taker_fee
         total_cost = size_usdt + fee
 
+        self.logger.info(f"💳 BUY ORDER COSTS:")
+        self.logger.info(f"   Order Size: ${size_usdt:,.2f}")
+        self.logger.info(f"   Taker Fee ({self.taker_fee*100:.1f}%): ${fee:.2f}")
+        self.logger.info(f"   Total Cost: ${total_cost:,.2f}")
+
         if total_cost > self.balance:
             # Adjust size for fees
+            original_size = size_usdt
             size_usdt = self.balance / (1 + self.taker_fee) * 0.99  # Leave 1% buffer
             fee = size_usdt * self.taker_fee
             total_cost = size_usdt + fee
 
+            self.logger.info(f"🔄 BUY ORDER SIZE ADJUSTMENT:")
+            self.logger.info(f"   Original Size: ${original_size:,.2f}")
+            self.logger.info(f"   Adjusted Size: ${size_usdt:,.2f}")
+            self.logger.info(f"   New Fee: ${fee:.2f}")
+            self.logger.info(f"   New Total Cost: ${total_cost:,.2f}")
+
         # Execute trade
         btc_amount = size_usdt / execution_price
+
+        self.logger.info(f"🔄 EXECUTING BUY TRADE:")
+        self.logger.info(f"   BTC Amount: {btc_amount:.8f} BTC")
+        self.logger.info(f"   Execution Price: ${execution_price:,.2f}")
+        self.logger.info(f"   Total USDT: ${size_usdt:,.2f}")
 
         position = {
             'id': f"PT_{datetime.now(timezone.utc).isoformat()}",
@@ -126,7 +191,14 @@ class PaperTradingEngine:
 
         self.save_state()
 
-        self.logger.info(f"BUY executed: {btc_amount:.8f} BTC @ ${execution_price:.2f}")
+        self.logger.info(f"✅ BUY ORDER EXECUTED SUCCESSFULLY:")
+        self.logger.info(f"   Position ID: {position['id']}")
+        self.logger.info(f"   Strategy: {strategy_id}")
+        self.logger.info(f"   Amount: {btc_amount:.8f} BTC")
+        self.logger.info(f"   Price: ${execution_price:.2f}")
+        self.logger.info(f"   Fee Paid: ${fee:.2f}")
+        self.logger.info(f"   Remaining Balance: ${self.balance:,.2f}")
+        self.logger.info(f"   Total Positions: {len(self.positions)}")
 
         return {
             'success': True,
@@ -144,7 +216,12 @@ class PaperTradingEngine:
 
     def _close_position(self, signal: Dict, price: float, market_data: Dict) -> Dict:
         """Close a position with real P&L calculation"""
+        strategy_id = signal.get('strategy_id', 'unknown')
+
         if not self.positions:
+            self.logger.error(f"🚫 POSITION CLOSE REJECTED:")
+            self.logger.error(f"   Strategy: {strategy_id}")
+            self.logger.error(f"   Reason: No open positions available")
             return {'success': False, 'error': 'No open positions'}
 
         # Get position to close (oldest by default)
@@ -152,13 +229,28 @@ class PaperTradingEngine:
         if position_id:
             position = next((p for p in self.positions if p['id'] == position_id), None)
             if not position:
+                self.logger.error(f"🚫 POSITION CLOSE REJECTED:")
+                self.logger.error(f"   Strategy: {strategy_id}")
+                self.logger.error(f"   Reason: Position {position_id} not found")
                 return {'success': False, 'error': 'Position not found'}
         else:
             position = self.positions[0]  # Close oldest
 
+        self.logger.info(f"🔄 CLOSING POSITION:")
+        self.logger.info(f"   Position ID: {position['id']}")
+        self.logger.info(f"   Strategy: {strategy_id}")
+        self.logger.info(f"   Entry Price: ${position['entry_price']:,.2f}")
+        self.logger.info(f"   Size: {position['size_btc']:.8f} BTC (${position['size_usdt']:,.2f})")
+        self.logger.info(f"   Current Price: ${price:,.2f}")
+
         # Calculate actual execution price with slippage
         bid_price = market_data.get('bid', price)
         execution_price = bid_price * (1 - self.slippage)
+
+        self.logger.info(f"💰 POSITION CLOSE PRICING:")
+        self.logger.info(f"   Current Price: ${price:,.2f}")
+        self.logger.info(f"   Bid Price: ${bid_price:,.2f}")
+        self.logger.info(f"   Execution Price (with {self.slippage*100:.2f}% slippage): ${execution_price:,.2f}")
 
         # Calculate proceeds and fees
         proceeds_usdt = position['size_btc'] * execution_price
@@ -169,6 +261,13 @@ class PaperTradingEngine:
         total_cost = position['size_usdt'] + position['entry_fee']
         pnl = net_proceeds - total_cost
         pnl_percent = (pnl / total_cost) * 100
+
+        self.logger.info(f"📊 REAL P&L CALCULATION:")
+        self.logger.info(f"   Gross Proceeds: ${proceeds_usdt:,.2f}")
+        self.logger.info(f"   Exit Fee: ${fee:.2f}")
+        self.logger.info(f"   Net Proceeds: ${net_proceeds:,.2f}")
+        self.logger.info(f"   Total Cost (entry + fees): ${total_cost:,.2f}")
+        self.logger.info(f"   REALIZED P&L: ${pnl:+.2f} ({pnl_percent:+.2f}%)")
 
         # Record closed trade
         closed_trade = {
@@ -184,8 +283,10 @@ class PaperTradingEngine:
         # Update statistics
         if pnl > 0:
             self.winning_trades += 1
+            self.logger.info(f"🏆 WINNING TRADE RECORDED")
         else:
             self.losing_trades += 1
+            self.logger.info(f"📉 LOSING TRADE RECORDED")
 
         # Update state
         self.positions.remove(position)
@@ -195,10 +296,14 @@ class PaperTradingEngine:
 
         self.save_state()
 
-        self.logger.info(
-            f"Position CLOSED: {pnl:+.2f} USDT ({pnl_percent:+.2f}%) "
-            f"@ ${execution_price:.2f}"
-        )
+        self.logger.info(f"✅ POSITION CLOSED SUCCESSFULLY:")
+        self.logger.info(f"   Position ID: {position['id']}")
+        self.logger.info(f"   Strategy: {strategy_id}")
+        self.logger.info(f"   P&L: ${pnl:+.2f} ({pnl_percent:+.2f}%)")
+        self.logger.info(f"   Exit Price: ${execution_price:.2f}")
+        self.logger.info(f"   New Balance: ${self.balance:,.2f}")
+        self.logger.info(f"   Open Positions: {len(self.positions)}")
+        self.logger.info(f"   Win Rate: {self.winning_trades/(self.winning_trades + self.losing_trades)*100:.1f}%")
 
         return {
             'success': True,
@@ -231,7 +336,11 @@ class PaperTradingEngine:
                         'trigger_price': position['stop_loss'],
                         'result': result
                     })
-                    self.logger.info(f"STOP LOSS triggered at ${current_price:.2f}")
+                    self.logger.info(f"🚨 STOP LOSS TRIGGERED:")
+                    self.logger.info(f"   Position: {position['id']}")
+                    self.logger.info(f"   Trigger Price: ${position['stop_loss']:.2f}")
+                    self.logger.info(f"   Current Price: ${current_price:.2f}")
+                    self.logger.info(f"   P&L: ${result.get('pnl_usdt', 0):+.2f}")
 
             # Check take profit
             elif position.get('take_profit') and current_price >= position['take_profit']:
@@ -247,7 +356,11 @@ class PaperTradingEngine:
                         'trigger_price': position['take_profit'],
                         'result': result
                     })
-                    self.logger.info(f"TAKE PROFIT triggered at ${current_price:.2f}")
+                    self.logger.info(f"🏆 TAKE PROFIT TRIGGERED:")
+                    self.logger.info(f"   Position: {position['id']}")
+                    self.logger.info(f"   Trigger Price: ${position['take_profit']:.2f}")
+                    self.logger.info(f"   Current Price: ${current_price:.2f}")
+                    self.logger.info(f"   P&L: ${result.get('pnl_usdt', 0):+.2f}")
 
         return triggered_orders
 

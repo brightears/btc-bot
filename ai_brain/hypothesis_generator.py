@@ -109,8 +109,14 @@ class HypothesisGenerator:
             try:
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
-                    # If already in async context, create task
-                    hypothesis = asyncio.create_task(self._generate_llm_hypothesis(market_context))
+                    # If already in async context, we can't await here in a sync function
+                    # So we'll use run_coroutine_threadsafe
+                    import concurrent.futures
+                    future = asyncio.run_coroutine_threadsafe(
+                        self._generate_llm_hypothesis(market_context),
+                        loop
+                    )
+                    hypothesis = future.result(timeout=30)  # Wait up to 30 seconds
                 else:
                     # If not in async context, run directly
                     hypothesis = loop.run_until_complete(self._generate_llm_hypothesis(market_context))

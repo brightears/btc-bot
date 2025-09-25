@@ -130,8 +130,17 @@ class RealtimeMarketData:
                     data = await response.json()
                     price = float(data['lastPrice'])
                     volume_btc = float(data['volume'])
+                    quote_volume = float(data.get('quoteVolume', 0))
+
                     # Convert BTC volume to USD volume
                     volume_usd = volume_btc * price
+
+                    # Log detailed volume calculation
+                    self.logger.info(f"Volume calculation - Price: ${price:,.2f}, "
+                                   f"BTC Volume: {volume_btc:,.2f}, "
+                                   f"Calculated USD: ${volume_usd:,.0f} (${volume_usd/1e9:.2f}B), "
+                                   f"API Quote Volume: ${quote_volume:,.0f}")
+
                     return {
                         'price': price,
                         'volume_24h': volume_usd,  # USD volume, not BTC
@@ -224,11 +233,16 @@ class RealtimeMarketData:
             self.logger.warning("Invalid volume data")
             return False
 
+        # Add detailed logging for volume tracking
+        self.logger.info(f"Volume validation: ${volume:,.0f} (${volume/1e9:.2f}B USD)")
+
         # BTC USD volume should typically be between $1B - $100B daily
         if volume < 1_000_000_000:  # Less than $1B is suspicious
-            self.logger.warning(f"Volume ${volume:,.0f} seems too low for BTC")
+            self.logger.warning(f"Volume ${volume:,.0f} (${volume/1e9:.2f}B) seems too low for BTC")
         elif volume > 100_000_000_000:  # More than $100B is unusual
-            self.logger.warning(f"Volume ${volume:,.0f} seems unusually high")
+            self.logger.warning(f"Volume ${volume:,.0f} (${volume/1e9:.2f}B) seems unusually high")
+        else:
+            self.logger.info(f"Volume ${volume:,.0f} (${volume/1e9:.2f}B) is within expected range")
 
         # Check funding rate is reasonable (usually between -0.1% and 0.1%)
         funding = futures_data.get('funding_rate', 0)

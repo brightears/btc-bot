@@ -111,6 +111,7 @@ class BaseStrategy(ABC):
         Returns:
             Signal object with trading decision
         """
+        # Implemented in subclasses - they should add their own logging
         pass
 
     @abstractmethod
@@ -128,28 +129,78 @@ class BaseStrategy(ABC):
 
     def execute_signal(self, signal: Signal) -> bool:
         """Execute a trading signal"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        logger.info(f"🎯 STRATEGY SIGNAL EXECUTION:")
+        logger.info(f"   Strategy: {self.name} (ID: {self.strategy_id})")
+        logger.info(f"   Action: {signal.action.upper()}")
+        logger.info(f"   Confidence: {signal.confidence:.1f}%")
+        logger.info(f"   Size: ${signal.size:,.2f}")
+        logger.info(f"   Reason: {signal.reason}")
+
         if signal.action == 'hold':
+            logger.info(f"⏸️ HOLD SIGNAL PROCESSED:")
+            logger.info(f"   Strategy: {self.name}")
+            logger.info(f"   Reason: {signal.reason}")
+            logger.info(f"   No trade execution required")
             return True
 
         # Record the trade attempt
         self.metrics.total_trades += 1
+        logger.info(f"📈 TRADE ATTEMPT RECORDED:")
+        logger.info(f"   Strategy: {self.name}")
+        logger.info(f"   Trade Number: #{self.metrics.total_trades}")
+        logger.info(f"   Total Strategy Trades: {self.metrics.total_trades}")
 
         # In dry-run mode, simulate execution
         if not self.is_live:
+            logger.info(f"📝 PAPER TRADING MODE:")
+            logger.info(f"   Strategy: {self.name}")
+            logger.info(f"   Action: Simulating {signal.action} execution")
+            logger.info(f"   Live Trading: {self.is_live}")
             self.simulate_execution(signal)
             return True
 
         # In live mode, actual execution would happen here
         # This would integrate with exchange APIs
+        logger.info(f"💰 LIVE TRADING MODE:")
+        logger.info(f"   Strategy: {self.name}")
+        logger.info(f"   Action: Executing REAL {signal.action} trade")
+        logger.info(f"   WARNING: Live trading with real money!")
         return self.execute_live_trade(signal)
 
     def simulate_execution(self, signal: Signal):
         """Simulate trade execution for dry-run mode"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        logger.info(f"🎮 STRATEGY SIMULATION EXECUTION:")
+        logger.info(f"   Strategy: {self.name} (ID: {self.strategy_id})")
+        logger.info(f"   Simulated Action: {signal.action.upper()}")
+        logger.info(f"   Simulated Size: ${signal.size:,.2f}")
+        logger.info(f"   Signal Confidence: {signal.confidence:.1f}%")
+        logger.info(f"   Strategy Confidence: {self.confidence_score:.1f}%")
+
         # Simplified simulation - you'd add more realistic simulation here
         simulated_pnl = (signal.confidence - 50) * 0.01 * signal.size  # Simple confidence-based P&L
 
+        logger.info(f"💵 SIMULATED P&L CALCULATION:")
+        logger.info(f"   Strategy: {self.name}")
+        logger.info(f"   Formula: ({signal.confidence:.1f}% - 50%) * 0.01 * ${signal.size:,.2f}")
+        logger.info(f"   Confidence Delta: {signal.confidence - 50:+.1f}%")
+        logger.info(f"   Simulated P&L: ${simulated_pnl:+.2f}")
+
         self.update_metrics(simulated_pnl)
         self.learn_from_trade(signal, simulated_pnl)
+
+        logger.info(f"📊 STRATEGY METRICS UPDATED:")
+        logger.info(f"   Strategy: {self.name}")
+        logger.info(f"   Total Trades: {self.metrics.total_trades}")
+        logger.info(f"   Win Rate: {self.metrics.win_rate:.1f}%")
+        logger.info(f"   Total P&L: ${self.metrics.total_pnl:+.2f}")
+        logger.info(f"   Strategy Confidence: {self.confidence_score:.1f}%")
+        logger.info(f"   Ready for Live: {self.should_go_live()}")
 
     def execute_live_trade(self, signal: Signal) -> bool:
         """Execute live trade - to be implemented with exchange integration"""
@@ -158,6 +209,14 @@ class BaseStrategy(ABC):
 
     def update_metrics(self, pnl: float):
         """Update strategy metrics after a trade"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        logger.info(f"📊 UPDATING STRATEGY METRICS:")
+        logger.info(f"   Strategy: {self.name}")
+        logger.info(f"   Trade P&L: ${pnl:+.2f}")
+        logger.info(f"   Previous Total P&L: ${self.metrics.total_pnl:+.2f}")
+
         self.metrics.total_pnl += pnl
 
         if pnl > 0:
@@ -168,6 +227,8 @@ class BaseStrategy(ABC):
             )
             if pnl > self.metrics.best_trade:
                 self.metrics.best_trade = pnl
+                logger.info(f"🏆 NEW BEST TRADE: ${pnl:+.2f} for {self.name}")
+            logger.info(f"✅ WINNING TRADE: #{self.metrics.winning_trades} for {self.name}")
         else:
             self.metrics.losing_trades += 1
             self.metrics.avg_loss = (
@@ -176,17 +237,49 @@ class BaseStrategy(ABC):
             )
             if pnl < self.metrics.worst_trade:
                 self.metrics.worst_trade = pnl
+                logger.info(f"📉 NEW WORST TRADE: ${pnl:+.2f} for {self.name}")
+            logger.info(f"❌ LOSING TRADE: #{self.metrics.losing_trades} for {self.name}")
 
         self.metrics.update_win_rate()
+        old_confidence = self.confidence_score
         self.update_confidence()
+
+        logger.info(f"📊 FINAL METRICS UPDATE:")
+        logger.info(f"   Strategy: {self.name}")
+        logger.info(f"   New Total P&L: ${self.metrics.total_pnl:+.2f}")
+        logger.info(f"   Win Rate: {self.metrics.win_rate:.1f}%")
+        logger.info(f"   Confidence: {old_confidence:.1f}% → {self.confidence_score:.1f}%")
+        logger.info(f"   Winning Trades: {self.metrics.winning_trades}")
+        logger.info(f"   Losing Trades: {self.metrics.losing_trades}")
 
     def learn_from_trade(self, signal: Signal, pnl: float):
         """Learn from trade outcome to improve future decisions"""
+        import logging
+        logger = logging.getLogger(__name__)
+
+        old_confidence = self.confidence_score
+
         # Adjust confidence based on outcome
         if pnl > 0:
-            self.confidence_score = min(100, self.confidence_score + self.adaptation_rate * 10)
+            confidence_boost = self.adaptation_rate * 10
+            self.confidence_score = min(100, self.confidence_score + confidence_boost)
+            logger.info(f"📈 STRATEGY LEARNING - POSITIVE OUTCOME:")
+            logger.info(f"   Strategy: {self.name}")
+            logger.info(f"   Trade P&L: ${pnl:+.2f}")
+            logger.info(f"   Confidence Boost: +{confidence_boost:.1f}%")
         else:
-            self.confidence_score = max(0, self.confidence_score - self.adaptation_rate * 5)
+            confidence_penalty = self.adaptation_rate * 5
+            self.confidence_score = max(0, self.confidence_score - confidence_penalty)
+            logger.info(f"📉 STRATEGY LEARNING - NEGATIVE OUTCOME:")
+            logger.info(f"   Strategy: {self.name}")
+            logger.info(f"   Trade P&L: ${pnl:+.2f}")
+            logger.info(f"   Confidence Penalty: -{confidence_penalty:.1f}%")
+
+        logger.info(f"🧠 STRATEGY ADAPTATION:")
+        logger.info(f"   Strategy: {self.name}")
+        logger.info(f"   Old Confidence: {old_confidence:.1f}%")
+        logger.info(f"   New Confidence: {self.confidence_score:.1f}%")
+        logger.info(f"   Adaptation Rate: {self.adaptation_rate}")
 
         # Store pattern for future reference
         pattern = {
@@ -199,7 +292,15 @@ class BaseStrategy(ABC):
         self.patterns_learned.append(pattern)
 
         # Keep only recent patterns (last 100)
+        patterns_before = len(self.patterns_learned)
         self.patterns_learned = self.patterns_learned[-100:]
+
+        logger.info(f"📚 PATTERN LEARNING:")
+        logger.info(f"   Strategy: {self.name}")
+        logger.info(f"   New Pattern Stored: {signal.action} @ {signal.confidence:.1f}% → ${pnl:+.2f}")
+        logger.info(f"   Total Patterns: {len(self.patterns_learned)}")
+        if patterns_before > 100:
+            logger.info(f"   Old patterns pruned: {patterns_before - len(self.patterns_learned)}")
 
     def update_confidence(self):
         """Update overall strategy confidence based on recent performance"""
@@ -215,12 +316,25 @@ class BaseStrategy(ABC):
 
     def should_go_live(self) -> bool:
         """Check if strategy meets criteria for live trading"""
-        return (
-            self.confidence_score >= self.min_confidence_for_live and
-            self.metrics.total_trades >= 50 and  # Minimum sample size
-            self.metrics.win_rate >= 55 and  # Minimum win rate
-            self.metrics.total_pnl > 0  # Profitable overall
-        )
+        import logging
+        logger = logging.getLogger(__name__)
+
+        meets_confidence = self.confidence_score >= self.min_confidence_for_live
+        meets_trades = self.metrics.total_trades >= 50
+        meets_win_rate = self.metrics.win_rate >= 55
+        meets_profitability = self.metrics.total_pnl > 0
+
+        ready = meets_confidence and meets_trades and meets_win_rate and meets_profitability
+
+        if self.metrics.total_trades % 10 == 0 or ready:  # Log every 10 trades or when ready
+            logger.info(f"🔍 LIVE READINESS CHECK for {self.name}:")
+            logger.info(f"   Confidence: {self.confidence_score:.1f}% (need ≥{self.min_confidence_for_live}%) {'✅' if meets_confidence else '❌'}")
+            logger.info(f"   Total Trades: {self.metrics.total_trades} (need ≥50) {'✅' if meets_trades else '❌'}")
+            logger.info(f"   Win Rate: {self.metrics.win_rate:.1f}% (need ≥55%) {'✅' if meets_win_rate else '❌'}")
+            logger.info(f"   Profitability: ${self.metrics.total_pnl:+.2f} (need >$0) {'✅' if meets_profitability else '❌'}")
+            logger.info(f"   READY FOR LIVE: {'YES' if ready else 'NO'}")
+
+        return ready
 
     def get_status(self) -> Dict:
         """Get current strategy status"""

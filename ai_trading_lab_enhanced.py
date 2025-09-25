@@ -58,7 +58,10 @@ class EnhancedAITradingLab:
 
         # Initialize enhanced AI components
         print("🧠 Initializing Enhanced AI components...")
-        self.strategy_manager = StrategyManager(telegram_notifier=self)
+        self.strategy_manager = StrategyManager(
+            telegram_notifier=self,
+            paper_trader=None  # Will set after paper trader is initialized
+        )
         self.learning_engine = LearningEngine()
         self.hypothesis_generator = HypothesisGenerator(llm_analyzer=self.llm_analyzer)
 
@@ -95,7 +98,9 @@ class EnhancedAITradingLab:
         try:
             from ai_brain.paper_trading_engine import PaperTradingEngine
             self.paper_trader = PaperTradingEngine(initial_balance=10000)
-            print("✅ Paper trading with REAL price movements")
+            # Connect paper trader to strategy manager
+            self.strategy_manager.paper_trader = self.paper_trader
+            print("✅ Paper trading with REAL price movements - Connected to strategy manager")
         except ImportError:
             self.paper_trader = None
             print("⚠️ Paper trading engine not available")
@@ -205,7 +210,11 @@ class EnhancedAITradingLab:
         # Try to use real market data if available
         if self.use_real_data and self.market_data_fetcher:
             try:
+                self.logger.debug("📡 Fetching real market data...")
                 real_data = await self.market_data_fetcher.get_market_data()
+
+                # Ensure is_real_data flag is set
+                real_data['is_real_data'] = True
 
                 # Add sentiment from our analyzer
                 real_data['sentiment'] = self.latest_sentiment.get('sentiment_label', 'neutral') if self.latest_sentiment else 'neutral'
@@ -220,14 +229,25 @@ class EnhancedAITradingLab:
                 else:
                     real_data['volatility'] = 'medium'
 
+                # Add volume in USD for strategy analysis
+                if 'volume' not in real_data and 'price' in real_data:
+                    # Ensure we have volume_24h for strategy analysis
+                    real_data['volume_24h'] = real_data.get('volume_24h', real_data.get('volume', 0))
+
                 # Cache for next call
                 self._last_real_data = real_data
+
+                self.logger.debug(f"✅ Real market data: BTC=${real_data.get('price', 0):,.2f}, "
+                                f"Volume=${real_data.get('volume_24h', 0)/1e9:.2f}B USD")
                 return real_data
 
             except Exception as e:
-                self.logger.error(f"Error getting real market data: {e}")
+                self.logger.error(f"❌ Error getting real market data: {e}")
+                import traceback
+                self.logger.debug(f"Traceback: {traceback.format_exc()}")
 
         # Fallback to simulated data
+        self.logger.warning("⚠️ Using simulated market data - trading disabled")
         return self._get_simulated_market_data()
 
     def _get_simulated_market_data(self):
@@ -239,12 +259,13 @@ class EnhancedAITradingLab:
             'timestamp': datetime.now(timezone.utc),
             'price': 0,  # Invalid price to prevent trading
             'volume': 0,
+            'volume_24h': 0,  # Add this for strategy compatibility
             'funding_rate': 0,
             'sentiment': 'unknown',
             'price_history': [],
             'volume_history': [],
             'volatility': 'unknown',
-            'is_real_data': False,
+            'is_real_data': False,  # CRITICAL: This prevents trading
             'data_quality': {
                 'score': 0,
                 'issues': ['CRITICAL: No real market data available', 'Trading DISABLED for safety']
@@ -444,63 +465,27 @@ class EnhancedAITradingLab:
                 # AI analysis
                 analysis = self.learning_engine.analyze_market(market_data)
 
-                # Update all strategies
-                if hasattr(self.strategy_manager, 'strategies'):
-                    for strategy_id, strategy in self.strategy_manager.strategies.items():
-                        # Use REAL paper trading instead of random simulation
-                        if self.paper_trader and hasattr(strategy, 'analyze'):
-                            # CRITICAL: Validate data integrity before ANY trading
-                            if self.data_validator:
-                                data_valid, data_issues = self.data_validator.validate_market_data(market_data)
-                                if not data_valid:
-                                    self.logger.error(f"Data validation failed: {data_issues}")
-                                    # Skip this iteration - DO NOT TRADE ON BAD DATA
-                                    continue
+                # CRITICAL: Validate data integrity before ANY trading
+                if self.data_validator:
+                    data_valid, data_issues = self.data_validator.validate_market_data(market_data)
+                    if not data_valid:
+                        self.logger.error(f"Data validation failed: {data_issues}")
+                        # Skip this iteration - DO NOT TRADE ON BAD DATA
+                        continue
 
-                            # Get real trading signal from strategy
-                            signal = strategy.analyze(market_data)
+                # Update all strategies using the strategy manager
+                if hasattr(self.strategy_manager, 'strategies') and self.strategy_manager.strategies:
+                    self.logger.info(f"🔄 Running {len(self.strategy_manager.strategies)} strategies...")
+                    await self.strategy_manager.run_all_strategies(market_data)
 
-                            if signal and signal.action != 'hold':
-                                # Validate signal before execution
-                                if self.data_validator:
-                                    signal_valid, signal_issues = self.data_validator.validate_trading_signal(
-                                        {'action': signal.action, 'size': signal.size},
-                                        market_data
-                                    )
-                                    if not signal_valid:
-                                        self.logger.warning(f"Signal validation failed: {signal_issues}")
-                                        continue
-
-                                # Execute with REAL paper trading engine
-                                trade_result = self.paper_trader.execute_trade(
-                                    {
-                                        'action': signal.action,
-                                        'size': signal.size,
-                                        'stop_loss': getattr(signal, 'stop_loss', None),
-                                        'take_profit': getattr(signal, 'take_profit', None),
-                                        'strategy_id': strategy.id
-                                    },
-                                    market_data
-                                )
-
-                                # Update strategy metrics with REAL results
-                                if trade_result.get('success') and trade_result.get('pnl_usdt') is not None:
-                                    real_pnl = trade_result['pnl_usdt']
-                                    if hasattr(strategy.metrics, 'record_trade'):
-                                        strategy.metrics.record_trade(real_pnl)
-
-                                    # Adjust confidence based on REAL performance
-                                    if real_pnl > 0:
-                                        strategy.confidence_score = min(100, strategy.confidence_score + 0.5)
-                                    else:
-                                        strategy.confidence_score = max(0, strategy.confidence_score - 0.3)
-
-                        # Check stop losses and take profits with REAL prices
-                        if self.paper_trader:
-                            triggered_orders = self.paper_trader.check_stop_loss_take_profit(market_data)
-                            for order in triggered_orders:
-                                if order['result'].get('pnl_usdt'):
-                                    self.logger.info(f"Order triggered: {order['type']} - P&L: ${order['result']['pnl_usdt']:.2f}")
+                    # Check stop losses and take profits with REAL prices
+                    if self.paper_trader:
+                        triggered_orders = self.paper_trader.check_stop_loss_take_profit(market_data)
+                        for order in triggered_orders:
+                            if order['result'].get('pnl_usdt'):
+                                self.logger.info(f"Order triggered: {order['type']} - P&L: ${order['result']['pnl_usdt']:.2f}")
+                else:
+                    self.logger.warning("⚠️ No strategies loaded in strategy manager")
 
                 # Send AI insights every 2 hours
                 if iteration % 120 == 0:
