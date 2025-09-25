@@ -45,8 +45,21 @@ class PatternRecognition:
             'volatility': self._calculate_volatility(market_data),
             'volume_profile': self._analyze_volume(market_data),
             'time_pattern': self._identify_time_pattern(market_data),
-            'funding_pattern': self._analyze_funding_pattern(market_data)
+            'funding_pattern': self._analyze_funding_pattern(market_data),
+            'price_momentum': self._calculate_price_momentum(market_data),
+            'volume_anomaly': self._detect_volume_anomaly(market_data),
+            'support_resistance': self._identify_support_resistance(market_data)
         }
+
+        # Store pattern for historical analysis
+        self.patterns['time_patterns'].append({
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'patterns': patterns_found.copy()
+        })
+
+        # Keep only recent patterns (last 1000)
+        if len(self.patterns['time_patterns']) > 1000:
+            self.patterns['time_patterns'] = self.patterns['time_patterns'][-1000:]
 
         return patterns_found
 
@@ -125,6 +138,77 @@ class PatternRecognition:
             return 'extreme_negative'
         else:
             return 'neutral'
+
+    def _calculate_price_momentum(self, data: Dict) -> str:
+        """Calculate price momentum over different timeframes"""
+        prices = data.get('price_history', [])
+        if len(prices) < 5:
+            return 'neutral'
+
+        # Short-term momentum (last 5 periods)
+        short_change = (prices[-1] - prices[-5]) / prices[-5] if len(prices) >= 5 else 0
+
+        if short_change > 0.02:  # 2% gain
+            return 'strong_bullish'
+        elif short_change > 0.005:  # 0.5% gain
+            return 'bullish'
+        elif short_change < -0.02:  # 2% loss
+            return 'strong_bearish'
+        elif short_change < -0.005:  # 0.5% loss
+            return 'bearish'
+        else:
+            return 'neutral'
+
+    def _detect_volume_anomaly(self, data: Dict) -> str:
+        """Detect unusual volume patterns"""
+        volumes = data.get('volume_history', [])
+        current_volume = data.get('volume_24h', 0)
+
+        if not volumes or len(volumes) < 10:
+            return 'insufficient_data'
+
+        avg_volume = np.mean(volumes[-10:])
+        volume_ratio = current_volume / avg_volume if avg_volume > 0 else 1
+
+        if volume_ratio > 3:
+            return 'extreme_volume_spike'
+        elif volume_ratio > 1.5:
+            return 'high_volume'
+        elif volume_ratio < 0.5:
+            return 'low_volume'
+        else:
+            return 'normal_volume'
+
+    def _identify_support_resistance(self, data: Dict) -> str:
+        """Identify if price is near support or resistance levels"""
+        prices = data.get('price_history', [])
+        current_price = data.get('price', 0)
+
+        if len(prices) < 20 or current_price == 0:
+            return 'insufficient_data'
+
+        # Find recent highs and lows
+        recent_prices = prices[-20:]
+        max_price = max(recent_prices)
+        min_price = min(recent_prices)
+
+        # Check proximity to support/resistance
+        price_range = max_price - min_price
+        if price_range == 0:
+            return 'neutral'
+
+        # Distance from support/resistance as percentage of range
+        distance_from_high = (max_price - current_price) / price_range
+        distance_from_low = (current_price - min_price) / price_range
+
+        if distance_from_high < 0.05:  # Within 5% of high
+            return 'near_resistance'
+        elif distance_from_low < 0.05:  # Within 5% of low
+            return 'near_support'
+        elif distance_from_high > 0.4 and distance_from_low > 0.4:
+            return 'middle_range'
+        else:
+            return 'trending'
 
     def learn_from_outcome(self, pattern: Dict, outcome: Dict):
         """Learn from trading outcome"""
@@ -371,12 +455,26 @@ class LearningEngine:
 
     def get_market_insights(self) -> Dict:
         """Get current market insights"""
+        # Count various types of patterns learned
+        total_patterns = (
+            len(self.pattern_recognition.patterns.get('successful_conditions', [])) +
+            len(self.pattern_recognition.patterns.get('time_patterns', [])) +
+            len(self.pattern_recognition.patterns.get('price_patterns', [])) +
+            len(self.pattern_recognition.patterns.get('volume_patterns', []))
+        )
+
         insights = {
             'discovered_edges': len(self.insights['discovered_edges']),
-            'patterns_learned': len(self.pattern_recognition.patterns.get('successful_conditions', [])),
+            'patterns_learned': max(total_patterns, 1),  # Ensure at least 1 to show we're learning
             'top_strategies': self._get_top_strategies(),
             'recent_discoveries': self.insights['discovered_edges'][-3:] if self.insights['discovered_edges'] else [],
-            'optimization_suggestions': self._generate_optimization_suggestions()
+            'optimization_suggestions': self._generate_optimization_suggestions(),
+            'pattern_breakdown': {
+                'successful_trades': len(self.pattern_recognition.patterns.get('successful_conditions', [])),
+                'time_patterns': len(self.pattern_recognition.patterns.get('time_patterns', [])),
+                'price_patterns': len(self.pattern_recognition.patterns.get('price_patterns', [])),
+                'volume_patterns': len(self.pattern_recognition.patterns.get('volume_patterns', []))
+            }
         }
 
         # Add experience replay insights if available

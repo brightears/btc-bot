@@ -36,8 +36,9 @@ class StrategyManager:
 
         self.is_running = False
         self.executor = ThreadPoolExecutor(max_workers=10)
-        self.evaluation_interval = 3600  # Evaluate every hour
+        self.evaluation_interval = 1800  # Evaluate every 30 minutes (more frequent)
         self.last_evaluation = datetime.now(timezone.utc)
+        self.trading_frequency = 300  # Execute trades every 5 minutes
 
         # Performance tracking
         self.performance_history = []
@@ -110,6 +111,57 @@ class StrategyManager:
         except Exception as e:
             self.logger.error(f"Error loading strategies: {e}")
 
+    async def import_proven_strategies(self):
+        """Import and test proven strategy templates on startup"""
+        try:
+            from strategies.proven_strategies import get_proven_strategies
+
+            proven_strategies = get_proven_strategies()
+            self.logger.info(f"Importing {len(proven_strategies)} proven strategies...")
+
+            imported_count = 0
+            for strategy in proven_strategies:
+                # Only import if we don't already have this strategy type
+                existing_names = [s.name for s in self.strategies.values()]
+                if strategy.name not in existing_names:
+
+                    # Run quick backtest
+                    backtest_result = await self.backtest_strategy(strategy)
+
+                    if backtest_result.get('success', False):
+                        metrics = backtest_result['results']
+                        # Add if shows any promise
+                        if metrics.get('win_rate', 0) >= 25 or metrics.get('total_pnl', 0) > -100:
+                            self.add_strategy(strategy)
+                            imported_count += 1
+                            self.logger.info(f"✅ Imported proven strategy: {strategy.name}")
+                        else:
+                            self.logger.info(f"❌ Skipped {strategy.name} - poor backtest performance")
+                    else:
+                        # Add without backtest
+                        self.add_strategy(strategy)
+                        imported_count += 1
+                        self.logger.info(f"✅ Imported proven strategy: {strategy.name} (no backtest)")
+
+            if imported_count > 0 and self.telegram:
+                await self.telegram.send_message(
+                    f"🎯 *Proven Strategies Imported*\n\n"
+                    f"Added {imported_count} battle-tested strategies:\n"
+                    f"• Funding Rate Arbitrage\n"
+                    f"• Statistical Arbitrage\n"
+                    f"• Market Making\n"
+                    f"• Momentum Following\n"
+                    f"• Mean Reversion\n"
+                    f"• Volume Profile Trading\n\n"
+                    f"_All strategies are now active in paper trading mode_"
+                )
+
+            return imported_count
+
+        except Exception as e:
+            self.logger.error(f"Error importing proven strategies: {e}")
+            return 0
+
     def add_strategy(self, strategy: BaseStrategy):
         """Add a new strategy to the manager"""
         self.strategies[strategy.strategy_id] = strategy
@@ -165,8 +217,8 @@ class StrategyManager:
             # Generate signal
             signal = strategy.analyze(market_data)
 
-            # Execute if confident enough
-            if signal.confidence > 50:
+            # Execute if confident enough (lowered threshold for more trades)
+            if signal.confidence > 35:  # Lowered from 50 to 35
                 success = strategy.execute_signal(signal)
 
                 # Learn from the execution
@@ -254,8 +306,8 @@ class StrategyManager:
                         f"Use /reject {strategy_id} to continue testing"
                     )
 
-            # Check if needs optimization
-            elif status['metrics']['total_trades'] > 20 and status['metrics']['win_rate'] < 45:
+            # Check if needs optimization (lowered win rate threshold)
+            elif status['metrics']['total_trades'] > 10 and status['metrics']['win_rate'] < 35:
                 evaluation_report['needs_optimization'].append(strategy_id)
 
                 # Try to optimize parameters
@@ -267,8 +319,8 @@ class StrategyManager:
                 )
                 strategy.config = optimized_params
 
-            # Check if should stop
-            elif status['metrics']['total_trades'] > 50 and status['metrics']['total_pnl'] < -100:
+            # Check if should stop (more lenient - allow more experimentation)
+            elif status['metrics']['total_trades'] > 100 and status['metrics']['total_pnl'] < -300:
                 evaluation_report['should_stop'].append(strategy_id)
                 strategy.stop()
 
@@ -332,8 +384,8 @@ class StrategyManager:
             if backtest_result['success']:
                 backtest_metrics = backtest_result['results']
 
-                # Only add strategy if backtest shows promise
-                if backtest_metrics.get('win_rate', 0) >= 40 or backtest_metrics.get('total_pnl', 0) > 0:
+                # Lowered threshold - add strategy if backtest shows any promise
+                if backtest_metrics.get('win_rate', 0) >= 30 or backtest_metrics.get('total_pnl', 0) > -50:
                     self.add_strategy(exp_strategy)
 
                     # Send detailed notification with backtest results

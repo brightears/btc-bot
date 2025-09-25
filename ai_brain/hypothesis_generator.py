@@ -135,6 +135,49 @@ class HypothesisGenerator:
 
         return hypothesis
 
+    async def generate_hypothesis_with_web_research(self, market_context: Dict = None) -> Dict:
+        """Generate hypothesis enhanced with web research"""
+        if not self.llm_analyzer:
+            return self.generate_hypothesis(market_context)
+
+        try:
+            # Search for successful trading strategies
+            search_queries = [
+                "successful Bitcoin trading strategies 2024",
+                "profitable cryptocurrency arbitrage methods",
+                "Bitcoin futures funding rate strategy",
+                "crypto market making profitable strategies"
+            ]
+
+            web_insights = []
+            for query in search_queries[:2]:  # Limit to 2 searches
+                try:
+                    results = await self.llm_analyzer.search_market_intel(query)
+                    if results and results.get('insights'):
+                        web_insights.extend(results['insights'][:2])  # Top 2 insights per query
+                except Exception as e:
+                    print(f"Web research error for query '{query}': {e}")
+
+            # Generate hypothesis with web insights
+            if web_insights:
+                enhanced_context = market_context or {}
+                enhanced_context['web_insights'] = web_insights
+
+                hypothesis = await self._generate_llm_hypothesis(enhanced_context)
+                if hypothesis:
+                    hypothesis['web_research'] = True
+                    hypothesis['insights_used'] = len(web_insights)
+                    self.hypotheses['pending'].append(hypothesis)
+                    self.save_hypotheses()
+                    return hypothesis
+
+            # Fallback to regular generation
+            return self.generate_hypothesis(market_context)
+
+        except Exception as e:
+            print(f"Error in web research hypothesis generation: {e}")
+            return self.generate_hypothesis(market_context)
+
     async def _generate_llm_hypothesis(self, market_context: Dict) -> Optional[Dict]:
         """Generate hypothesis using LLM analysis"""
         if not self.llm_analyzer:
@@ -172,6 +215,127 @@ class HypothesisGenerator:
             return None
 
         return None
+
+    def mutate_successful_strategy(self, successful_hypothesis: Dict) -> Dict:
+        """Create a mutation of a successful strategy"""
+        base_id = successful_hypothesis['id']
+        mutation_id = hashlib.md5(f"mutation_{base_id}_{datetime.now(timezone.utc).isoformat()}".encode()).hexdigest()[:8]
+
+        # Create variations
+        variations = [
+            "tighter_risk_parameters",
+            "wider_entry_conditions",
+            "different_timeframe",
+            "adjusted_thresholds",
+            "combined_with_sentiment"
+        ]
+
+        variation = random.choice(variations)
+
+        mutated_hypothesis = {
+            'id': mutation_id,
+            'name': f"{successful_hypothesis['name']} - {variation.replace('_', ' ').title()}",
+            'category': 'strategy_mutation',
+            'pattern': successful_hypothesis.get('pattern', 'unknown'),
+            'parent_strategy': base_id,
+            'mutation_type': variation,
+            'description': f"Mutated version of successful strategy: {successful_hypothesis['description']}",
+            'entry_conditions': self._mutate_conditions(successful_hypothesis.get('entry_conditions', []), variation),
+            'exit_conditions': self._mutate_conditions(successful_hypothesis.get('exit_conditions', []), variation),
+            'risk_parameters': self._mutate_risk_parameters(successful_hypothesis.get('risk_parameters', {}), variation),
+            'confidence': max(40, successful_hypothesis.get('confidence', 50) - 10),  # Slightly lower confidence
+            'created_at': datetime.now(timezone.utc).isoformat(),
+            'status': 'pending',
+            'backtest_required': True,
+            'is_mutation': True
+        }
+
+        self.hypotheses['pending'].append(mutated_hypothesis)
+        self.save_hypotheses()
+
+        return mutated_hypothesis
+
+    def _mutate_conditions(self, conditions: List[Dict], variation_type: str) -> List[Dict]:
+        """Mutate strategy conditions based on variation type"""
+        if not conditions:
+            return conditions
+
+        mutated = conditions.copy()
+
+        if variation_type == "tighter_risk_parameters":
+            # Make conditions more restrictive
+            for condition in mutated:
+                if condition.get('type') == 'threshold' and 'value' in condition:
+                    condition['value'] *= 0.8  # 20% tighter
+
+        elif variation_type == "wider_entry_conditions":
+            # Make entry easier
+            for condition in mutated:
+                if condition.get('type') == 'threshold' and 'value' in condition:
+                    condition['value'] *= 1.2  # 20% wider
+
+        elif variation_type == "combined_with_sentiment":
+            # Add sentiment condition
+            mutated.append({'type': 'sentiment', 'condition': 'positive_sentiment_required'})
+
+        return mutated
+
+    def _mutate_risk_parameters(self, risk_params: Dict, variation_type: str) -> Dict:
+        """Mutate risk parameters"""
+        mutated = risk_params.copy()
+
+        if variation_type == "tighter_risk_parameters":
+            mutated['max_position_size'] = mutated.get('max_position_size', 100) * 0.7
+            mutated['required_edge_bps'] = mutated.get('required_edge_bps', 0.3) * 1.5
+
+        elif variation_type == "different_timeframe":
+            mutated['holding_period_hours'] = random.choice([1, 4, 8, 24, 48])
+
+        return mutated
+
+    def import_proven_strategies(self) -> List[Dict]:
+        """Import proven strategy templates as base hypotheses"""
+        try:
+            from strategies.proven_strategies import get_proven_strategies
+
+            proven_strategies = get_proven_strategies()
+            imported_hypotheses = []
+
+            for strategy in proven_strategies:
+                hypothesis_id = hashlib.md5(f"proven_{strategy.name}_{datetime.now(timezone.utc).isoformat()}".encode()).hexdigest()[:8]
+
+                hypothesis = {
+                    'id': hypothesis_id,
+                    'name': f"Proven: {strategy.name}",
+                    'category': 'proven_strategy',
+                    'pattern': strategy.name.lower().replace(" ", "_"),
+                    'description': strategy.description,
+                    'entry_conditions': [{'type': 'proven_logic', 'condition': 'use_strategy_analyze_method'}],
+                    'exit_conditions': [{'type': 'stop_loss', 'value': 1.0}, {'type': 'take_profit', 'value': 2.0}],
+                    'risk_parameters': {
+                        'max_position_size': 200,
+                        'max_daily_trades': 5,
+                        'required_edge_bps': 0.2
+                    },
+                    'confidence': 70,  # High confidence for proven strategies
+                    'created_at': datetime.now(timezone.utc).isoformat(),
+                    'status': 'pending',
+                    'backtest_required': True,
+                    'is_proven': True,
+                    'strategy_class': strategy.__class__.__name__
+                }
+
+                imported_hypotheses.append(hypothesis)
+                self.hypotheses['pending'].append(hypothesis)
+
+            self.save_hypotheses()
+            print(f"✅ Imported {len(imported_hypotheses)} proven strategy templates")
+
+            return imported_hypotheses
+
+        except ImportError as e:
+            print(f"Could not import proven strategies: {e}")
+            return []
 
     def _create_hypothesis_from_pattern(self, category: str, pattern: str, context: Dict = None) -> Dict:
         """Create a specific hypothesis from a pattern"""

@@ -128,9 +128,13 @@ class RealtimeMarketData:
             async with session.get(url, params=params) as response:
                 if response.status == 200:
                     data = await response.json()
+                    price = float(data['lastPrice'])
+                    volume_btc = float(data['volume'])
+                    # Convert BTC volume to USD volume
+                    volume_usd = volume_btc * price
                     return {
-                        'price': float(data['lastPrice']),
-                        'volume_24h': float(data['volume']),
+                        'price': price,
+                        'volume_24h': volume_usd,  # USD volume, not BTC
                         'high_24h': float(data['highPrice']),
                         'low_24h': float(data['lowPrice']),
                         'price_change_percent': float(data['priceChangePercent'])
@@ -214,11 +218,17 @@ class RealtimeMarketData:
                 self.logger.warning(f"Price change {change:.2%} exceeds threshold")
                 return False
 
-        # Check volume is reasonable
+        # Check volume is reasonable (USD volume should be in billions for BTC)
         volume = spot_data.get('volume_24h', 0)
         if volume <= 0:
             self.logger.warning("Invalid volume data")
             return False
+
+        # BTC USD volume should typically be between $1B - $100B daily
+        if volume < 1_000_000_000:  # Less than $1B is suspicious
+            self.logger.warning(f"Volume ${volume:,.0f} seems too low for BTC")
+        elif volume > 100_000_000_000:  # More than $100B is unusual
+            self.logger.warning(f"Volume ${volume:,.0f} seems unusually high")
 
         # Check funding rate is reasonable (usually between -0.1% and 0.1%)
         funding = futures_data.get('funding_rate', 0)

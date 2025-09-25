@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from telegram import Bot
 import random
 import logging
+import time
 
 # Import AI components
 from ai_brain.learning_engine import LearningEngine
@@ -124,19 +125,29 @@ class EnhancedAITradingLab:
 
     async def initialize_strategies(self):
         """Initialize and load strategies"""
-        # Add funding carry as base strategy
-        funding_strategy = FundingCarryStrategy()
-        self.strategy_manager.add_strategy(funding_strategy)
-        print(f"✅ Loaded {funding_strategy.name}")
+        # Import proven strategies first
+        print("🎯 Importing proven strategy templates...")
+        imported_count = await self.strategy_manager.import_proven_strategies()
+
+        if imported_count == 0:
+            # Fallback: Add funding carry as base strategy
+            funding_strategy = FundingCarryStrategy()
+            self.strategy_manager.add_strategy(funding_strategy)
+            print(f"✅ Loaded fallback strategy: {funding_strategy.name}")
+
+        # Import proven hypotheses into hypothesis generator
+        print("📚 Importing proven strategy hypotheses...")
+        proven_hypotheses = self.hypothesis_generator.import_proven_strategies()
+        print(f"✅ Imported {len(proven_hypotheses)} proven strategy hypotheses")
 
         # Try to load pending hypotheses
         try:
             with open('knowledge/hypotheses.json', 'r') as f:
                 data = json.load(f)
                 hypotheses = data.get('pending', [])
-                print(f"📚 Found {len(hypotheses)} pending hypotheses")
+                print(f"📚 Found {len(hypotheses)} existing pending hypotheses")
         except:
-            print("📊 Starting with Funding Carry strategy only")
+            print("📊 Starting fresh with proven strategies only")
 
     def _get_market_data(self):
         """Get REAL market data from exchanges (synchronous wrapper)"""
@@ -512,8 +523,8 @@ class EnhancedAITradingLab:
                                     msg += f"• Status: {'✅ Beating backtest' if performance_delta > 0 else '⚠️ Underperforming'}\n\n"
                                 await self.send_message(msg[:4000])  # Truncate if too long
 
-                # Launch new experiments (every 2 hours)
-                if iteration % 120 == 0:
+                # Launch new experiments (every hour - increased frequency)
+                if iteration % 60 == 0:
                     print("🧪 Launching new experiment...")
                     if hasattr(self.strategy_manager, 'launch_new_experiment'):
                         try:
@@ -522,9 +533,30 @@ class EnhancedAITradingLab:
                         except Exception as e:
                             print(f"Error launching experiment: {e}")
 
-                # Generate AI hypothesis every hour
-                if (now - self.last_hypothesis).total_seconds() > 3600:
-                    await self.generate_ai_hypothesis(market_data)
+                # Generate AI hypothesis every 30 minutes (increased frequency)
+                if (now - self.last_hypothesis).total_seconds() > 1800:  # 30 minutes
+                    # Use web research every other hypothesis generation
+                    if hasattr(self, '_use_web_research'):
+                        self._use_web_research = not self._use_web_research
+                    else:
+                        self._use_web_research = True
+
+                    if self._use_web_research:
+                        hypothesis = await self.hypothesis_generator.generate_hypothesis_with_web_research(market_data)
+                    else:
+                        hypothesis = await self.generate_ai_hypothesis(market_data)
+
+                    if hypothesis:
+                        # Check if we should mutate successful strategies
+                        successful = [h for h in self.hypothesis_generator.hypotheses.get('successful', [])
+                                    if h.get('confidence', 0) > 70]
+                        if successful and random.random() < 0.3:  # 30% chance to mutate
+                            mutated = self.hypothesis_generator.mutate_successful_strategy(random.choice(successful))
+                            await self.send_message(f"🧬 *Strategy Mutation Created*\n\n"
+                                                  f"Mutated: {mutated['name']}\n"
+                                                  f"Type: {mutated['mutation_type'].replace('_', ' ').title()}\n"
+                                                  f"_Testing variation of successful strategy_")
+
                     self.last_hypothesis = now
 
                 # Send heartbeat every 6 hours
