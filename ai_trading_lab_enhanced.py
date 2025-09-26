@@ -618,7 +618,10 @@ class EnhancedAITradingLab:
             quality_score = data_quality.get('score', 100)
             quality_emoji = "🟢" if quality_score >= 80 else "🟡" if quality_score >= 50 else "🔴"
             msg += f"*Data Source:* {quality_emoji} Real Market Data (Quality: {quality_score}%)\n"
-            msg += f"*BTC Price:* ${market_data.get('price', 0):,.2f}\n\n"
+            msg += f"*BTC Price:* ${market_data.get('price', 0):,.2f}\n"
+            volume_24h = market_data.get('volume_24h', 0)
+            volume_billions = volume_24h / 1_000_000_000
+            msg += f"*24h Volume:* ${volume_billions:.2f}B USD\n\n"
         else:
             msg += f"*Data Source:* ⚠️ SIMULATED DATA - DO NOT TRADE\n\n"
 

@@ -100,6 +100,7 @@ class RealtimeMarketData:
                     'timestamp': datetime.now(timezone.utc),
                     'price': spot_data['price'],
                     'volume': spot_data['volume_24h'],
+                    'volume_24h': spot_data['volume_24h'],  # Ensure strategies get the volume they expect
                     'bid': depth_data['bid'],
                     'ask': depth_data['ask'],
                     'spread': depth_data['spread'],
@@ -117,7 +118,8 @@ class RealtimeMarketData:
                 self.funding_history.append(futures_data['funding_rate'])
 
                 self.last_update = datetime.now(timezone.utc)
-                self.logger.info(f"Updated market data: BTC ${spot_data['price']:.2f}")
+                volume_billions = spot_data['volume_24h'] / 1_000_000_000
+                self.logger.info(f"Updated market data: BTC ${spot_data['price']:.2f}, Volume: ${volume_billions:.2f}B")
 
     async def _fetch_spot_data(self, session) -> Dict:
         """Fetch spot market data from Binance"""
