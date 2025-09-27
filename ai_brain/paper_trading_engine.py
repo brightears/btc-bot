@@ -35,6 +35,8 @@ class PaperTradingEngine:
         self.taker_fee = 0.001  # 0.1% taker fee (Binance)
         self.slippage = 0.0005  # 0.05% slippage on market orders
         self.min_order_size = 10  # $10 minimum order
+        self.max_open_positions = 15  # Maximum concurrent positions to limit overtrading
+        self.max_position_size = 50  # Maximum $50 per position to reduce fee impact
 
         # Performance tracking
         self.total_fees_paid = 0
@@ -115,8 +117,15 @@ class PaperTradingEngine:
 
     def _execute_buy(self, signal: Dict, price: float, market_data: Dict) -> Dict:
         """Execute a buy order with real price and fees"""
-        size_usdt = signal.get('size', 100)
+        size_usdt = min(signal.get('size', 100), self.max_position_size)  # Cap position size
         strategy_id = signal.get('strategy_id', 'unknown')
+
+        # Check position limit
+        if len(self.positions) >= self.max_open_positions:
+            self.logger.warning(f"🚫 BUY ORDER REJECTED - Position limit reached:")
+            self.logger.warning(f"   Current positions: {len(self.positions)}")
+            self.logger.warning(f"   Max allowed: {self.max_open_positions}")
+            return {'success': False, 'error': 'Maximum position limit reached'}
 
         self.logger.info(f"💵 BUY ORDER PREPARATION:")
         self.logger.info(f"   Strategy: {strategy_id}")

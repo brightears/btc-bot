@@ -234,10 +234,10 @@ class StrategyManager:
             self.logger.info(f"   Reasoning: {signal.reason}")
             self.logger.info(f"   Strategy Confidence Score: {strategy.confidence_score:.1f}%")
 
-            # Execute if confident enough (lowered threshold for more trades)
-            if signal.confidence > 35:  # Lowered from 50 to 35
+            # Execute if confident enough (increased threshold for better quality)
+            if signal.confidence > 50:  # Increased to 50% for better quality trades
                 self.logger.info(f"✅ TRADE EXECUTION APPROVED for {strategy.name}:")
-                self.logger.info(f"   Signal confidence {signal.confidence:.1f}% > 35% threshold")
+                self.logger.info(f"   Signal confidence {signal.confidence:.1f}% > 50% threshold")
                 self.logger.info(f"   Strategy ID: {strategy_id}")
                 self.logger.info(f"   Action: {signal.action}")
                 self.logger.info(f"   Size: ${signal.size:,.2f}")
@@ -304,7 +304,7 @@ class StrategyManager:
             else:
                 self.logger.info(f"⏸️ TRADE EXECUTION REJECTED:")
                 self.logger.info(f"   Strategy: {strategy.name} (ID: {strategy_id})")
-                self.logger.info(f"   Signal confidence {signal.confidence:.1f}% < 35% threshold")
+                self.logger.info(f"   Signal confidence {signal.confidence:.1f}% < 50% threshold")
                 self.logger.info(f"   Action: HOLDING position")
                 self.logger.info(f"   Signal details: {signal.action} ${signal.size:,.2f} - {signal.reason}")
 
