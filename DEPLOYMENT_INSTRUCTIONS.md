@@ -1,28 +1,67 @@
-# 🚀 Trading Strategy Fix Deployment
+# 🚀 BTC Bot Deployment Instructions
 
-## Files to Deploy
-1. `deploy_fixes.tar.gz` - Contains the fixed strategy files
-2. `apply_trading_fixes.sh` - Automated deployment script
+## Server Information
+- **VPS Provider**: Hetzner (Singapore)
+- **IP Address**: 5.223.55.219
+- **Location**: `/root/btc-bot/`
+- **Process**: `python ai_trading_lab_enhanced.py`
 
-## Manual Deployment Steps
+## Standard Deployment Process
 
-### Option 1: Quick Deploy (Recommended)
+### Step 1: Make Changes Locally
 ```bash
-# On your local machine:
-scp deploy_fixes.tar.gz root@YOUR_VPS_IP:/root/btc-bot/
-scp apply_trading_fixes.sh root@YOUR_VPS_IP:/root/btc-bot/
-
-# SSH into VPS:
-ssh root@YOUR_VPS_IP
-cd /root/btc-bot
-bash apply_trading_fixes.sh
+# Edit files as needed
+# Test changes if possible
 ```
 
-### Option 2: Manual Deploy
+### Step 2: Commit and Push to GitHub
 ```bash
-# SSH into VPS:
-ssh root@YOUR_VPS_IP
+git add -A
+git commit -m "description of changes"
+git push origin main
+```
+
+### Step 3: Deploy to VPS
+```bash
+# SSH into VPS
+ssh root@5.223.55.219
 cd /root/btc-bot
+
+# Pull latest changes
+git pull origin main
+
+# IMPORTANT: Restart the bot
+pkill -f ai_trading_lab
+source .venv/bin/activate
+python ai_trading_lab_enhanced.py
+```
+
+## Verification Steps
+
+### Check if Bot is Running
+```bash
+ssh root@5.223.55.219 "ps aux | grep ai_trading"
+```
+
+### Check Recent Logs
+```bash
+ssh root@5.223.55.219 "tail -50 /root/btc-bot/ai_lab_enhanced.log"
+```
+
+### Check Current Settings
+```bash
+# Confidence threshold
+ssh root@5.223.55.219 "grep 'confidence.*threshold' /root/btc-bot/strategies/strategy_manager.py"
+
+# Position limits
+ssh root@5.223.55.219 "grep max_open_positions /root/btc-bot/ai_brain/paper_trading_engine.py"
+```
+
+## Current Configuration (Sep 28, 2025)
+- **Confidence Threshold**: 40%
+- **Max Open Positions**: 15
+- **Max Position Size**: $50
+- **Expected Win Rate**: 30-40% (on weekdays)
 
 # Backup current files
 cp strategies/proven_strategies.py strategies/proven_strategies.py.bak

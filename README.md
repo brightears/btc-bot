@@ -27,16 +27,23 @@ The AI Trading Lab is an advanced, self-learning cryptocurrency trading system t
 ## System Status
 
 **Current Deployment:**
-- **Status**: ✅ Running Enhanced AI Lab on VPS (5.223.55.219)
-- **Version**: v2.1-enhanced-ai-persistent-learning
+- **Status**: ✅ Running Enhanced AI Lab on Hetzner VPS (5.223.55.219)
+- **Version**: v2.2-optimized-trading-parameters
 - **Mode**: Paper Trading with Real Market Data
 - **Data Source**: Binance API (Real-time)
 - **AI Model**: Gemini 2.5 Flash (Company Account)
 - **Learning**: Continuous with Persistent Memory
 - **Features**: News Analysis, On-chain Monitoring, Hypothesis Generation
 - **Monitoring**: Auto-restart enabled
-- **Notifications**: Telegram active (every 2 minutes)
-- **Last Update**: January 23, 2025 (API migration, learning persistence)
+- **Notifications**: Telegram active (hourly reports + strategy updates)
+- **Last Update**: September 28, 2025 (Optimized trading parameters)
+
+**Current Trading Configuration:**
+- **Confidence Threshold**: 40% (balanced for weekend volume)
+- **Max Open Positions**: 15 (prevents overtrading)
+- **Max Position Size**: $50 (reduces fee impact)
+- **Current Performance**: Recovering from weekend low volume
+- **Expected Improvement**: Monday with normal $2B+ volume
 
 ## Quick Start
 
