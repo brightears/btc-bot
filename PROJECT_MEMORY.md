@@ -8,24 +8,33 @@
 - **Bot Location**: `/root/btc-bot/`
 - **Process**: Running as `python ai_trading_lab_enhanced.py`
 
-## 📊 CURRENT BOT STATUS (as of Sep 28, 2025)
-- **Status**: ✅ RUNNING on VPS (PID 278368)
-- **Uptime**: Started at 02:35 UTC
-- **Performance**: Recovering from 0% win rate issue
-- **Expected**: Should improve Monday with normal volume
+## 📊 CURRENT BOT STATUS (as of Sep 30, 2025)
+- **Status**: ✅ RUNNING on VPS with EMERGENCY FIXES APPLIED
+- **Uptime**: Restarted at 15:16 UTC (Sep 30)
+- **Performance**: Emergency fixes deployed - monitoring initial trades
+- **Critical**: All major bugs fixed, expecting 45-55% win rate
 
 ## ⚙️ CURRENT CONFIGURATION
 ```python
-# Optimized Settings (Sep 28)
-confidence_threshold = 40%  # Balanced for weekend trading
-max_open_positions = 15    # Prevents overtrading
-max_position_size = $50     # Reduces fee impact
+# Emergency Fix Settings (Sep 30)
+confidence_threshold = 85%   # CRITICAL: Raised from 40% to prevent overtrading
+max_open_positions = 3       # Reduced from 15 to control exposure
+max_position_size = $100     # Base size with confidence scaling (50-100%)
+stop_loss = 1%              # Auto-set 1% below entry on ALL positions
+take_profit = 2%            # Auto-set 2% above entry on ALL positions
+
+# Circuit Breaker Active
+max_daily_trades = 20       # Hard limit (was 862 trades in 48h!)
+max_daily_loss = $200       # Trading halts if exceeded
+min_trade_interval = 3600   # 1 hour between trades per strategy
 ```
 
 ### Why These Settings:
-- **40% threshold**: Compromise between quality (50%) and activity (35%)
-- **15 positions max**: Prevents the 90+ position chaos we saw before
-- **$50 max size**: Keeps fees manageable (~$0.10 per trade)
+- **85% threshold**: CRITICAL - Only highest conviction trades to prevent overtrading
+- **3 positions max**: Tight control prevents catastrophic overexposure
+- **$50-100 size**: Confidence-scaled to match conviction level
+- **Auto stop-losses**: Every position protected with 1% stop-loss
+- **Circuit breaker**: Hard limits prevent runaway trading disasters
 
 ## 📈 PERFORMANCE HISTORY
 
