@@ -46,6 +46,26 @@ class StrategyManager:
         self.ready_for_live = []  # Strategies ready to go live
         self.backtest_results = {}  # Store backtest results by strategy ID
 
+        # CIRCUIT BREAKER RISK CONTROLS
+        # Critical safety measures to prevent overtrading disaster
+        self.circuit_breaker = {
+            'max_daily_trades': 20,  # Maximum trades per day (was 862 in 48h!)
+            'max_daily_loss': 200,  # Maximum $200 loss per day
+            'min_trade_interval': 3600,  # Minimum 1 hour between trades from same strategy
+            'daily_trade_count': 0,
+            'daily_loss': 0.0,
+            'last_trade_times': {},  # Track last trade time per strategy
+            'daily_reset_time': None,
+            'trading_halted': False,
+            'halt_reason': None
+        }
+        
+        # Initialize daily reset
+        now = datetime.now(timezone.utc)
+        self.circuit_breaker['daily_reset_time'] = now.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ) + timedelta(days=1)
+
         self.load_state()
         self.load_strategies()
 
@@ -198,6 +218,108 @@ class StrategyManager:
 
             self.save_state()
 
+    def _check_circuit_breaker(self, strategy_id: str, signal: Dict, current_price: float) -> Dict:
+        """
+        Check circuit breaker conditions before allowing trade
+        Returns: {'allowed': bool, 'reason': str}
+        """
+        now = datetime.now(timezone.utc)
+        
+        # Reset daily counters if needed
+        if now >= self.circuit_breaker['daily_reset_time']:
+            self.circuit_breaker['daily_trade_count'] = 0
+            self.circuit_breaker['daily_loss'] = 0.0
+            self.circuit_breaker['daily_reset_time'] = now.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            ) + timedelta(days=1)
+            self.circuit_breaker['trading_halted'] = False
+            self.circuit_breaker['halt_reason'] = None
+            self.logger.info("🔄 CIRCUIT BREAKER DAILY RESET COMPLETE")
+        
+        # Check if trading is halted
+        if self.circuit_breaker['trading_halted']:
+            self.logger.error(f"🚨 CIRCUIT BREAKER: TRADING HALTED")
+            self.logger.error(f"   Reason: {self.circuit_breaker['halt_reason']}")
+            return {'allowed': False, 'reason': self.circuit_breaker['halt_reason']}
+        
+        # Check daily trade count
+        if self.circuit_breaker['daily_trade_count'] >= self.circuit_breaker['max_daily_trades']:
+            reason = f"Daily trade limit reached ({self.circuit_breaker['max_daily_trades']} trades)"
+            self.circuit_breaker['trading_halted'] = True
+            self.circuit_breaker['halt_reason'] = reason
+            self.logger.error(f"🚨 CIRCUIT BREAKER TRIGGERED: {reason}")
+            if self.telegram:
+                import asyncio
+                asyncio.create_task(self.telegram.send_message(
+                    f"🚨 *CIRCUIT BREAKER ACTIVATED*\n\n"
+                    f"Reason: {reason}\n"
+                    f"Daily trades: {self.circuit_breaker['daily_trade_count']}\n"
+                    f"Trading halted until daily reset"
+                ))
+            return {'allowed': False, 'reason': reason}
+        
+        # Check daily loss limit
+        if self.circuit_breaker['daily_loss'] >= self.circuit_breaker['max_daily_loss']:
+            reason = f"Daily loss limit reached (${self.circuit_breaker['daily_loss']:.2f})"
+            self.circuit_breaker['trading_halted'] = True
+            self.circuit_breaker['halt_reason'] = reason
+            self.logger.error(f"🚨 CIRCUIT BREAKER TRIGGERED: {reason}")
+            if self.telegram:
+                import asyncio
+                asyncio.create_task(self.telegram.send_message(
+                    f"🚨 *CIRCUIT BREAKER ACTIVATED*\n\n"
+                    f"Reason: {reason}\n"
+                    f"Daily loss: ${self.circuit_breaker['daily_loss']:.2f}\n"
+                    f"Maximum allowed: ${self.circuit_breaker['max_daily_loss']:.2f}\n"
+                    f"Trading halted until daily reset"
+                ))
+            return {'allowed': False, 'reason': reason}
+        
+        # Check minimum time between trades for this strategy
+        last_trade_time = self.circuit_breaker['last_trade_times'].get(strategy_id)
+        if last_trade_time:
+            time_since_last = (now - last_trade_time).total_seconds()
+            min_interval = self.circuit_breaker['min_trade_interval']
+            
+            if time_since_last < min_interval:
+                remaining = min_interval - time_since_last
+                hours = int(remaining // 3600)
+                minutes = int((remaining % 3600) // 60)
+                reason = f"Too soon after last trade (wait {hours}h {minutes}m)"
+                self.logger.warning(f"⏰ CIRCUIT BREAKER: {reason}")
+                self.logger.warning(f"   Strategy: {strategy_id}")
+                self.logger.warning(f"   Last trade: {last_trade_time.isoformat()}")
+                self.logger.warning(f"   Time since: {time_since_last:.0f}s")
+                self.logger.warning(f"   Required interval: {min_interval}s")
+                return {'allowed': False, 'reason': reason}
+        
+        # All checks passed
+        self.logger.info("✅ CIRCUIT BREAKER CHECKS PASSED")
+        self.logger.info(f"   Daily trades: {self.circuit_breaker['daily_trade_count']}/{self.circuit_breaker['max_daily_trades']}")
+        self.logger.info(f"   Daily loss: ${self.circuit_breaker['daily_loss']:.2f}/${self.circuit_breaker['max_daily_loss']:.2f}")
+        
+        return {'allowed': True, 'reason': 'All safety checks passed'}
+    
+    def _update_circuit_breaker(self, strategy_id: str, trade_result: Dict):
+        """Update circuit breaker counters after trade execution"""
+        now = datetime.now(timezone.utc)
+        
+        # Update trade count
+        self.circuit_breaker['daily_trade_count'] += 1
+        
+        # Update last trade time for this strategy
+        self.circuit_breaker['last_trade_times'][strategy_id] = now
+        
+        # Update daily loss if applicable
+        if 'pnl_usdt' in trade_result and trade_result['pnl_usdt'] < 0:
+            self.circuit_breaker['daily_loss'] += abs(trade_result['pnl_usdt'])
+        
+        self.logger.info(f"📊 CIRCUIT BREAKER UPDATED:")
+        self.logger.info(f"   Daily trades: {self.circuit_breaker['daily_trade_count']}/{self.circuit_breaker['max_daily_trades']}")
+        self.logger.info(f"   Daily loss: ${self.circuit_breaker['daily_loss']:.2f}/${self.circuit_breaker['max_daily_loss']:.2f}")
+        
+        # Save state with circuit breaker data
+        self.save_state()
     async def run_strategy(self, strategy_id: str, market_data: Dict):
         """Run a single strategy with market data"""
         if strategy_id not in self.strategies:
@@ -235,13 +357,25 @@ class StrategyManager:
             self.logger.info(f"   Strategy Confidence Score: {strategy.confidence_score:.1f}%")
 
             # Execute if confident enough (balanced threshold for weekend trading)
-            if signal.confidence > 40:  # 40% threshold - balanced for weekend low volume
+            if signal.confidence > 85:  # 85% threshold - CRITICAL: Prevents overtrading (was 40%, caused 862 trades in 48h)
                 self.logger.info(f"✅ TRADE EXECUTION APPROVED for {strategy.name}:")
-                self.logger.info(f"   Signal confidence {signal.confidence:.1f}% > 40% threshold")
+                self.logger.info(f"   Signal confidence {signal.confidence:.1f}% > 85% threshold")
                 self.logger.info(f"   Strategy ID: {strategy_id}")
                 self.logger.info(f"   Action: {signal.action}")
                 self.logger.info(f"   Size: ${signal.size:,.2f}")
 
+                # CHECK CIRCUIT BREAKER BEFORE EXECUTING
+                current_price = market_data.get('price', 0)
+                cb_check = self._check_circuit_breaker(strategy_id, signal.__dict__, current_price)
+                
+                if not cb_check['allowed']:
+                    self.logger.error(f"🚫 TRADE BLOCKED BY CIRCUIT BREAKER:")
+                    self.logger.error(f"   Strategy: {strategy.name}")
+                    self.logger.error(f"   Reason: {cb_check['reason']}")
+                    self.logger.error(f"   Signal: {signal.action} ${signal.size:,.2f}")
+                    return  # Exit early - no trade allowed
+                
+                # Circuit breaker passed, proceed with trade
                 # Use paper trading engine if available for more realistic execution
                 if self.paper_trader and signal.action != 'hold':
                     self.logger.info(f"🎯 ROUTING TO PAPER TRADING ENGINE:")
@@ -277,6 +411,8 @@ class StrategyManager:
                             strategy.update_metrics(0)  # Neutral P&L for successful execution
                             self.logger.info(f"📝 Trade recorded without P&L calculation")
 
+                        # Update circuit breaker after successful trade
+                        self._update_circuit_breaker(strategy_id, trade_result)
                         success = True
                     else:
                         self.logger.warning(f"❌ PAPER TRADE BLOCKED:")
@@ -304,7 +440,7 @@ class StrategyManager:
             else:
                 self.logger.info(f"⏸️ TRADE EXECUTION REJECTED:")
                 self.logger.info(f"   Strategy: {strategy.name} (ID: {strategy_id})")
-                self.logger.info(f"   Signal confidence {signal.confidence:.1f}% < 40% threshold")
+                self.logger.info(f"   Signal confidence {signal.confidence:.1f}% < 85% threshold")
                 self.logger.info(f"   Action: HOLDING position")
                 self.logger.info(f"   Signal details: {signal.action} ${signal.size:,.2f} - {signal.reason}")
 

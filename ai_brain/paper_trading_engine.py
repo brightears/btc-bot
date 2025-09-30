@@ -35,8 +35,8 @@ class PaperTradingEngine:
         self.taker_fee = 0.001  # 0.1% taker fee (Binance)
         self.slippage = 0.0005  # 0.05% slippage on market orders
         self.min_order_size = 10  # $10 minimum order
-        self.max_open_positions = 15  # Maximum concurrent positions to limit overtrading
-        self.max_position_size = 50  # Maximum $50 per position to reduce fee impact
+        self.max_open_positions = 3  # Maximum concurrent positions to limit overtrading
+        self.max_position_size = 100  # Base position size - actual size scaled by confidence
 
         # Performance tracking
         self.total_fees_paid = 0
@@ -46,6 +46,9 @@ class PaperTradingEngine:
         # State persistence
         self.state_file = Path("knowledge/paper_trading_state.json")
         self.load_state()
+
+        # Repair any positions without stop-loss/take-profit
+        self.repair_positions_without_stop_loss()
 
     def execute_trade(self, signal: Dict, market_data: Dict) -> Dict:
         """
@@ -117,7 +120,34 @@ class PaperTradingEngine:
 
     def _execute_buy(self, signal: Dict, price: float, market_data: Dict) -> Dict:
         """Execute a buy order with real price and fees"""
-        size_usdt = min(signal.get('size', 100), self.max_position_size)  # Cap position size
+        # CONFIDENCE-BASED POSITION SIZING
+        # Scale position size based on confidence level to prevent overexposure
+        confidence = signal.get('confidence', 50)  # Default 50% if not provided
+        
+        # Position sizing formula:
+        # - 85-90% confidence: 50% of base size
+        # - 90-95% confidence: 75% of base size  
+        # - 95%+ confidence: 100% of base size
+        if confidence < 85:
+            # Should not reach here due to strategy_manager threshold
+            size_multiplier = 0.0
+            self.logger.warning(f"⚠️ LOW CONFIDENCE DETECTED: {confidence}% < 85% minimum")
+        elif confidence < 90:
+            size_multiplier = 0.5  # 50% of base size
+        elif confidence < 95:
+            size_multiplier = 0.75  # 75% of base size
+        else:
+            size_multiplier = 1.0  # Full base size
+        
+        base_size = min(signal.get('size', self.max_position_size), self.max_position_size)
+        size_usdt = base_size * size_multiplier
+        
+        self.logger.info(f"🎯 CONFIDENCE-BASED POSITION SIZING:")
+        self.logger.info(f"   Signal Confidence: {confidence:.1f}%")
+        self.logger.info(f"   Size Multiplier: {size_multiplier*100:.0f}%")
+        self.logger.info(f"   Base Size: ${base_size:.2f}")
+        self.logger.info(f"   Adjusted Size: ${size_usdt:.2f}")
+        
         strategy_id = signal.get('strategy_id', 'unknown')
 
         # Check position limit
@@ -180,6 +210,27 @@ class PaperTradingEngine:
         self.logger.info(f"   Execution Price: ${execution_price:,.2f}")
         self.logger.info(f"   Total USDT: ${size_usdt:,.2f}")
 
+        # AUTOMATIC STOP-LOSS AND TAKE-PROFIT CALCULATION
+        # If signal doesn't provide SL/TP, calculate them automatically
+        stop_loss = signal.get('stop_loss')
+        take_profit = signal.get('take_profit')
+
+        if stop_loss is None:
+            # Set stop-loss to 1% below entry price
+            stop_loss = execution_price * 0.99
+            self.logger.info(f"🛡️ AUTO STOP-LOSS SET:")
+            self.logger.info(f"   Stop Loss: ${stop_loss:,.2f} (-1.0% from entry)")
+        else:
+            self.logger.info(f"📍 USING SIGNAL STOP-LOSS: ${stop_loss:,.2f}")
+
+        if take_profit is None:
+            # Set take-profit to 2% above entry price
+            take_profit = execution_price * 1.02
+            self.logger.info(f"🎯 AUTO TAKE-PROFIT SET:")
+            self.logger.info(f"   Take Profit: ${take_profit:,.2f} (+2.0% from entry)")
+        else:
+            self.logger.info(f"📍 USING SIGNAL TAKE-PROFIT: ${take_profit:,.2f}")
+
         position = {
             'id': f"PT_{datetime.now(timezone.utc).isoformat()}",
             'type': 'long',
@@ -188,8 +239,8 @@ class PaperTradingEngine:
             'size_usdt': size_usdt,
             'entry_fee': fee,
             'entry_time': datetime.now(timezone.utc).isoformat(),
-            'stop_loss': signal.get('stop_loss'),
-            'take_profit': signal.get('take_profit'),
+            'stop_loss': stop_loss,
+            'take_profit': take_profit,
             'strategy': signal.get('strategy_id', 'unknown')
         }
 
@@ -205,6 +256,8 @@ class PaperTradingEngine:
         self.logger.info(f"   Strategy: {strategy_id}")
         self.logger.info(f"   Amount: {btc_amount:.8f} BTC")
         self.logger.info(f"   Price: ${execution_price:.2f}")
+        self.logger.info(f"   Stop Loss: ${stop_loss:,.2f} ({((stop_loss/execution_price - 1) * 100):.1f}%)")
+        self.logger.info(f"   Take Profit: ${take_profit:,.2f} ({((take_profit/execution_price - 1) * 100):.1f}%)")
         self.logger.info(f"   Fee Paid: ${fee:.2f}")
         self.logger.info(f"   Remaining Balance: ${self.balance:,.2f}")
         self.logger.info(f"   Total Positions: {len(self.positions)}")
@@ -330,7 +383,18 @@ class PaperTradingEngine:
         current_price = market_data.get('price', 0)
         triggered_orders = []
 
+        # Log monitoring activity if we have positions
+        if self.positions:
+            self.logger.debug(f"📊 MONITORING {len(self.positions)} POSITIONS FOR SL/TP:")
+            self.logger.debug(f"   Current BTC Price: ${current_price:,.2f}")
+
         for position in self.positions[:]:  # Copy list since we modify it
+            # Log position status for monitoring
+            if position.get('stop_loss') and position.get('take_profit'):
+                sl_distance = ((current_price - position['stop_loss']) / position['stop_loss']) * 100
+                tp_distance = ((position['take_profit'] - current_price) / current_price) * 100
+                self.logger.debug(f"   Position {position['id'][:20]}... Entry: ${position['entry_price']:.2f}, SL: ${position['stop_loss']:.2f} ({sl_distance:.2f}% away), TP: ${position['take_profit']:.2f} ({tp_distance:.2f}% away)")
+
             # Check stop loss
             if position.get('stop_loss') and current_price <= position['stop_loss']:
                 result = self._close_position(
@@ -490,6 +554,29 @@ class PaperTradingEngine:
             except Exception as e:
                 self.logger.error(f"Error loading state: {e}")
                 self.reset()
+
+    def repair_positions_without_stop_loss(self):
+        """Add stop-loss and take-profit to any positions that don't have them"""
+        repaired_count = 0
+        for position in self.positions:
+            if position.get('stop_loss') is None or position.get('take_profit') is None:
+                entry_price = position['entry_price']
+
+                if position.get('stop_loss') is None:
+                    position['stop_loss'] = entry_price * 0.99  # 1% below entry
+                    self.logger.warning(f"🔧 REPAIRED POSITION {position['id'][:20]}...")
+                    self.logger.warning(f"   Added missing stop-loss at ${position['stop_loss']:,.2f}")
+                    repaired_count += 1
+
+                if position.get('take_profit') is None:
+                    position['take_profit'] = entry_price * 1.02  # 2% above entry
+                    self.logger.warning(f"   Added missing take-profit at ${position['take_profit']:,.2f}")
+
+        if repaired_count > 0:
+            self.save_state()
+            self.logger.info(f"✅ Repaired {repaired_count} positions with missing stop-loss/take-profit")
+
+        return repaired_count
 
     def reset(self):
         """Reset paper trading account to initial state"""

@@ -78,7 +78,7 @@ class FundingRateArbitrageStrategy(BaseStrategy):
             confidence = 65
             reason = f"High negative funding {funding_rate:.4f} - long bias"
 
-        return Signal(action, size, confidence, reason)
+        return Signal(action, confidence, size, reason)
 
     def backtest(self, historical_data: List[Dict]) -> Dict:
         """Run backtest on historical funding rate data"""
@@ -189,7 +189,7 @@ class StatisticalArbitrageStrategy(BaseStrategy):
             confidence = 75
             reason = f"Spread z-score {z_score:.2f} - futures underpriced"
 
-        return Signal(action, size, confidence, reason)
+        return Signal(action, confidence, size, reason)
 
     def backtest(self, historical_data: List[Dict]) -> Dict:
         """Run backtest on historical spread data"""
@@ -289,7 +289,7 @@ class MarketMakingStrategy(BaseStrategy):
             confidence = 70
             reason = f"Market making - spread {spread:.4f}"
 
-            return Signal(action, size, confidence, reason)
+            return Signal(action, confidence, size, reason)
 
         return Signal('hold', 0, 0, f"Spread too narrow: {spread:.4f}")
 
@@ -420,7 +420,7 @@ class MomentumFollowingStrategy(BaseStrategy):
             confidence = 60
             reason = f"Strong downward momentum - MA spread {((short_ma/long_ma-1)*100):.1f}%"
 
-        return Signal(action, size, confidence, reason)
+        return Signal(action, confidence, size, reason)
 
     def backtest(self, historical_data: List[Dict]) -> Dict:
         """Run backtest on historical price data"""
@@ -597,7 +597,7 @@ class MeanReversionStrategy(BaseStrategy):
             confidence = 65
             reason = f"Price above Bollinger upper band"
 
-        return Signal(action, size, confidence, reason)
+        return Signal(action, confidence, size, reason)
 
     def backtest(self, historical_data: List[Dict]) -> Dict:
         """Run backtest on historical price data for mean reversion"""
@@ -748,7 +748,7 @@ class VolumeProfileStrategy(BaseStrategy):
             confidence = 60
             reason = f"Price {((current_price/vwap-1)*100):.2f}% above VWAP"
 
-        return Signal(action, size, confidence, reason)
+        return Signal(action, confidence, size, reason)
 
     def backtest(self, historical_data: List[Dict]) -> Dict:
         """Run backtest on historical volume profile data"""
@@ -903,7 +903,7 @@ class TestTradingStrategy(BaseStrategy):
                     confidence = 60
                     reason = f"Quick reversal sell - price declining from ${recent_trend[2]:,.2f}"
 
-        return Signal(action, size, confidence, reason)
+        return Signal(action, confidence, size, reason)
 
     def backtest(self, historical_data: List[Dict]) -> Dict:
         """Realistic backtest for profitable test strategy"""

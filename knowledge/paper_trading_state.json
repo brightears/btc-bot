@@ -1,7 +1,8 @@
 {
-  "balance": 9899.9,
+  "balance": 10007.051168539056,
   "initial_balance": 10000,
-  "positions": [
+  "positions": [],
+  "closed_trades": [
     {
       "id": "PT_2025-09-22T06:18:15.466333+00:00",
       "type": "long",
@@ -12,12 +13,35 @@
       "entry_time": "2025-09-22T06:18:15.466337+00:00",
       "stop_loss": 111863.4561,
       "take_profit": 114123.3239,
-      "strategy": "unknown"
+      "strategy": "unknown",
+      "exit_price": 111645.74184757804,
+      "exit_time": "2025-09-30T15:12:37.820843+00:00",
+      "exit_fee": 0.09875794227798722,
+      "pnl_usdt": -1.440815664290767,
+      "pnl_percent": -1.4393762880027643,
+      "duration_hours": 200.90620958583332
+    },
+    {
+      "id": "PT_2025-09-30T15:12:37.820298+00:00",
+      "type": "long",
+      "entry_price": 100100.025,
+      "size_btc": 0.0007492505621252343,
+      "size_usdt": 75.0,
+      "entry_fee": 0.075,
+      "entry_time": "2025-09-30T15:12:37.820398+00:00",
+      "stop_loss": 99099.02475,
+      "take_profit": 102102.02549999999,
+      "strategy": "test_strategy",
+      "exit_price": 111645.74184757804,
+      "exit_time": "2025-09-30T15:12:37.821130+00:00",
+      "exit_fee": 0.08365063483818665,
+      "pnl_usdt": 8.491984203348451,
+      "pnl_percent": 11.311334270194406,
+      "duration_hours": 2.0388888888888887e-07
     }
   ],
-  "closed_trades": [],
-  "total_fees_paid": 0.1,
-  "winning_trades": 0,
-  "losing_trades": 0,
-  "last_updated": "2025-09-22T06:18:15.466339+00:00"
+  "total_fees_paid": 0.35740857711617385,
+  "winning_trades": 1,
+  "losing_trades": 1,
+  "last_updated": "2025-09-30T15:12:37.821141+00:00"
 }
