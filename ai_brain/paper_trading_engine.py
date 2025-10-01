@@ -322,7 +322,7 @@ class PaperTradingEngine:
         # Calculate REAL P&L
         total_cost = position['size_usdt'] + position['entry_fee']
         pnl = net_proceeds - total_cost
-        pnl_percent = (pnl / total_cost) * 100
+        pnl_percent = (pnl / total_cost * 100) if total_cost > 0 else 0.0
 
         self.logger.info(f"📊 REAL P&L CALCULATION:")
         self.logger.info(f"   Gross Proceeds: ${proceeds_usdt:,.2f}")
@@ -365,7 +365,9 @@ class PaperTradingEngine:
         self.logger.info(f"   Exit Price: ${execution_price:.2f}")
         self.logger.info(f"   New Balance: ${self.balance:,.2f}")
         self.logger.info(f"   Open Positions: {len(self.positions)}")
-        self.logger.info(f"   Win Rate: {self.winning_trades/(self.winning_trades + self.losing_trades)*100:.1f}%")
+        total_trades = self.winning_trades + self.losing_trades
+        win_rate = (self.winning_trades / total_trades * 100) if total_trades > 0 else 0.0
+        self.logger.info(f"   Win Rate: {win_rate:.1f}%")
 
         return {
             'success': True,

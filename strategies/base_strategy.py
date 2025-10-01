@@ -221,20 +221,28 @@ class BaseStrategy(ABC):
 
         if pnl > 0:
             self.metrics.winning_trades += 1
-            self.metrics.avg_profit = (
-                (self.metrics.avg_profit * (self.metrics.winning_trades - 1) + pnl)
-                / self.metrics.winning_trades
-            )
+            # Safe average calculation with division by zero protection
+            if self.metrics.winning_trades > 0:
+                self.metrics.avg_profit = (
+                    (self.metrics.avg_profit * (self.metrics.winning_trades - 1) + pnl)
+                    / self.metrics.winning_trades
+                )
+            else:
+                self.metrics.avg_profit = 0
             if pnl > self.metrics.best_trade:
                 self.metrics.best_trade = pnl
                 logger.info(f"🏆 NEW BEST TRADE: ${pnl:+.2f} for {self.name}")
             logger.info(f"✅ WINNING TRADE: #{self.metrics.winning_trades} for {self.name}")
         else:
             self.metrics.losing_trades += 1
-            self.metrics.avg_loss = (
-                (self.metrics.avg_loss * (self.metrics.losing_trades - 1) + abs(pnl))
-                / self.metrics.losing_trades
-            )
+            # Safe average calculation with division by zero protection
+            if self.metrics.losing_trades > 0:
+                self.metrics.avg_loss = (
+                    (self.metrics.avg_loss * (self.metrics.losing_trades - 1) + abs(pnl))
+                    / self.metrics.losing_trades
+                )
+            else:
+                self.metrics.avg_loss = 0
             if pnl < self.metrics.worst_trade:
                 self.metrics.worst_trade = pnl
                 logger.info(f"📉 NEW WORST TRADE: ${pnl:+.2f} for {self.name}")
