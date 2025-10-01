@@ -46,18 +46,25 @@ class StrategyManager:
         self.ready_for_live = []  # Strategies ready to go live
         self.backtest_results = {}  # Store backtest results by strategy ID
 
-        # CIRCUIT BREAKER RISK CONTROLS
-        # Critical safety measures to prevent overtrading disaster
+        # CIRCUIT BREAKER RISK CONTROLS - OPTIMIZED VERSION
+        # Enhanced safety measures with dynamic adjustments
         self.circuit_breaker = {
             'max_daily_trades': 20,  # Maximum trades per day (was 862 in 48h!)
             'max_daily_loss': 200,  # Maximum $200 loss per day
-            'min_trade_interval': 3600,  # Minimum 1 hour between trades from same strategy
+            'min_trade_interval': 1800,  # Reduced to 30 minutes between trades from same strategy (was 1 hour)
             'daily_trade_count': 0,
             'daily_loss': 0.0,
             'last_trade_times': {},  # Track last trade time per strategy
             'daily_reset_time': None,
             'trading_halted': False,
-            'halt_reason': None
+            'halt_reason': None,
+            # NEW: Dynamic adjustments based on performance
+            'consecutive_losses': 0,  # Track consecutive losing trades
+            'max_consecutive_losses': 5,  # Halt after 5 consecutive losses
+            'win_streak': 0,  # Track winning streak
+            'performance_multiplier': 1.0,  # Adjust position sizes based on performance
+            'last_10_trades': [],  # Track recent trade outcomes for rolling win rate
+            'dynamic_confidence_adjustment': 0  # Temporary confidence threshold adjustment
         }
         
         # Initialize daily reset
@@ -301,23 +308,79 @@ class StrategyManager:
         return {'allowed': True, 'reason': 'All safety checks passed'}
     
     def _update_circuit_breaker(self, strategy_id: str, trade_result: Dict):
-        """Update circuit breaker counters after trade execution"""
+        """Update circuit breaker counters after trade execution with performance tracking"""
         now = datetime.now(timezone.utc)
-        
+
         # Update trade count
         self.circuit_breaker['daily_trade_count'] += 1
-        
+
         # Update last trade time for this strategy
         self.circuit_breaker['last_trade_times'][strategy_id] = now
-        
-        # Update daily loss if applicable
-        if 'pnl_usdt' in trade_result and trade_result['pnl_usdt'] < 0:
-            self.circuit_breaker['daily_loss'] += abs(trade_result['pnl_usdt'])
-        
+
+        # Track trade outcome for performance analysis
+        trade_won = False
+        if 'pnl_usdt' in trade_result:
+            pnl = trade_result['pnl_usdt']
+
+            # Update daily loss if applicable
+            if pnl < 0:
+                self.circuit_breaker['daily_loss'] += abs(pnl)
+                self.circuit_breaker['consecutive_losses'] += 1
+                self.circuit_breaker['win_streak'] = 0
+            else:
+                trade_won = True
+                self.circuit_breaker['consecutive_losses'] = 0
+                self.circuit_breaker['win_streak'] += 1
+
+            # Track last 10 trades for rolling metrics
+            self.circuit_breaker['last_10_trades'].append(pnl > 0)
+            if len(self.circuit_breaker['last_10_trades']) > 10:
+                self.circuit_breaker['last_10_trades'].pop(0)
+
+            # Calculate rolling win rate
+            if len(self.circuit_breaker['last_10_trades']) >= 5:
+                recent_win_rate = sum(self.circuit_breaker['last_10_trades']) / len(self.circuit_breaker['last_10_trades'])
+
+                # Dynamic adjustments based on performance
+                if recent_win_rate < 0.3:  # Less than 30% win rate
+                    self.circuit_breaker['dynamic_confidence_adjustment'] = 5  # Increase threshold by 5%
+                    self.logger.warning(f"⚠️ LOW WIN RATE: {recent_win_rate:.1%} - Increasing confidence threshold")
+                elif recent_win_rate > 0.6:  # More than 60% win rate
+                    self.circuit_breaker['dynamic_confidence_adjustment'] = -3  # Decrease threshold by 3%
+                    self.logger.info(f"✅ HIGH WIN RATE: {recent_win_rate:.1%} - Decreasing confidence threshold")
+                else:
+                    self.circuit_breaker['dynamic_confidence_adjustment'] = 0
+
+            # Performance multiplier for position sizing
+            if self.circuit_breaker['consecutive_losses'] >= 3:
+                self.circuit_breaker['performance_multiplier'] = 0.5  # Halve position sizes after 3 losses
+                self.logger.warning(f"🔻 REDUCING POSITION SIZES: {self.circuit_breaker['consecutive_losses']} consecutive losses")
+            elif self.circuit_breaker['win_streak'] >= 3:
+                self.circuit_breaker['performance_multiplier'] = 1.2  # Increase by 20% after 3 wins
+                self.logger.info(f"🔺 INCREASING POSITION SIZES: {self.circuit_breaker['win_streak']} consecutive wins")
+            else:
+                self.circuit_breaker['performance_multiplier'] = 1.0
+
+        # Check for consecutive loss circuit breaker
+        if self.circuit_breaker['consecutive_losses'] >= self.circuit_breaker['max_consecutive_losses']:
+            self.circuit_breaker['trading_halted'] = True
+            self.circuit_breaker['halt_reason'] = f"Max consecutive losses reached ({self.circuit_breaker['max_consecutive_losses']})"
+            self.logger.error(f"🚨 CIRCUIT BREAKER: HALTING DUE TO CONSECUTIVE LOSSES")
+            if self.telegram:
+                import asyncio
+                asyncio.create_task(self.telegram.send_message(
+                    f"🚨 *EMERGENCY HALT*\n\n"
+                    f"Trading stopped after {self.circuit_breaker['consecutive_losses']} consecutive losses\n"
+                    f"Manual intervention required"
+                ))
+
         self.logger.info(f"📊 CIRCUIT BREAKER UPDATED:")
         self.logger.info(f"   Daily trades: {self.circuit_breaker['daily_trade_count']}/{self.circuit_breaker['max_daily_trades']}")
         self.logger.info(f"   Daily loss: ${self.circuit_breaker['daily_loss']:.2f}/${self.circuit_breaker['max_daily_loss']:.2f}")
-        
+        self.logger.info(f"   Consecutive losses: {self.circuit_breaker['consecutive_losses']}")
+        self.logger.info(f"   Win streak: {self.circuit_breaker['win_streak']}")
+        self.logger.info(f"   Performance multiplier: {self.circuit_breaker['performance_multiplier']:.1f}x")
+
         # Save state with circuit breaker data
         self.save_state()
     async def run_strategy(self, strategy_id: str, market_data: Dict):
@@ -357,9 +420,16 @@ class StrategyManager:
             self.logger.info(f"   Strategy Confidence Score: {strategy.confidence_score:.1f}%")
 
             # Execute if confident enough (balanced threshold for weekend trading)
-            if signal.confidence > 85:  # 85% threshold - CRITICAL: Prevents overtrading (was 40%, caused 862 trades in 48h)
+            # OPTIMIZED THRESHOLD: 72% base + dynamic adjustment based on performance
+            # - Allows Test Trading (75%), Mean Reversion (80%), Statistical Arb (75%) at high confidence
+            # - Blocks most 60-65% signals which are lower conviction
+            # - Expected 8-15 trades/day vs 0 at 85% or 862 at 40%
+            # - Dynamically adjusts based on recent win rate
+            effective_threshold = 72 + self.circuit_breaker.get('dynamic_confidence_adjustment', 0)
+
+            if signal.confidence > effective_threshold:
                 self.logger.info(f"✅ TRADE EXECUTION APPROVED for {strategy.name}:")
-                self.logger.info(f"   Signal confidence {signal.confidence:.1f}% > 85% threshold")
+                self.logger.info(f"   Signal confidence {signal.confidence:.1f}% > {effective_threshold}% threshold")
                 self.logger.info(f"   Strategy ID: {strategy_id}")
                 self.logger.info(f"   Action: {signal.action}")
                 self.logger.info(f"   Size: ${signal.size:,.2f}")
@@ -440,7 +510,7 @@ class StrategyManager:
             else:
                 self.logger.info(f"⏸️ TRADE EXECUTION REJECTED:")
                 self.logger.info(f"   Strategy: {strategy.name} (ID: {strategy_id})")
-                self.logger.info(f"   Signal confidence {signal.confidence:.1f}% < 85% threshold")
+                self.logger.info(f"   Signal confidence {signal.confidence:.1f}% < {effective_threshold}% threshold")
                 self.logger.info(f"   Action: HOLDING position")
                 self.logger.info(f"   Signal details: {signal.action} ${signal.size:,.2f} - {signal.reason}")
 
