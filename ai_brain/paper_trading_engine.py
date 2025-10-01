@@ -123,18 +123,18 @@ class PaperTradingEngine:
         # CONFIDENCE-BASED POSITION SIZING
         # Scale position size based on confidence level to prevent overexposure
         confidence = signal.get('confidence', 50)  # Default 50% if not provided
-        
-        # Position sizing formula:
-        # - 85-90% confidence: 50% of base size
-        # - 90-95% confidence: 75% of base size  
-        # - 95%+ confidence: 100% of base size
-        if confidence < 85:
+
+        # Position sizing formula (aligned with 72% threshold):
+        # - 72-80% confidence: 50% of base size (moderate conviction)
+        # - 80-90% confidence: 75% of base size (high conviction)
+        # - 90%+ confidence: 100% of base size (very high conviction)
+        if confidence < 72:
             # Should not reach here due to strategy_manager threshold
             size_multiplier = 0.0
-            self.logger.warning(f"⚠️ LOW CONFIDENCE DETECTED: {confidence}% < 85% minimum")
-        elif confidence < 90:
+            self.logger.warning(f"⚠️ LOW CONFIDENCE DETECTED: {confidence}% < 72% minimum")
+        elif confidence < 80:
             size_multiplier = 0.5  # 50% of base size
-        elif confidence < 95:
+        elif confidence < 90:
             size_multiplier = 0.75  # 75% of base size
         else:
             size_multiplier = 1.0  # Full base size
