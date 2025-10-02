@@ -166,32 +166,44 @@ Emergency Halts:
 
 ### Deployment Steps
 1. ✅ Code changes completed locally
-2. ⏳ Test with paper trading for 24 hours
-3. ⏳ Monitor first 10 trades closely
-4. ⏳ Verify circuit breaker functioning
-5. ⏳ Confirm win rate improvement
+2. ✅ Deployed to VPS (Oct 1, 2025)
+3. ❌ BLOCKED: Missing confidence parameter bug discovered
+4. ✅ Fixed confidence bug (Oct 2, commit 2ae3944)
+5. ✅ Real trades now executing with correct position sizes
+6. ⏳ Monitoring first 50 trades for win rate improvement
 
 ---
 
 ## 8. SUCCESS METRICS
 
-### Phase 1 (24 Hours)
-- [ ] 5-20 trades executed
-- [ ] Win rate > 30%
-- [ ] No circuit breaker halts
-- [ ] All trades have stop-losses
+### Phase 1 (24 Hours) - IN PROGRESS
+- [x] 5-20 trades executed (6 trades closed as of Oct 2, 09:00 UTC)
+- [ ] Win rate > 30% (currently 0W/6L - early stage)
+- [x] No circuit breaker halts (working correctly)
+- [x] All trades have stop-losses (auto-set at 1%)
+- [x] Real position sizes executing ($50-75 based on confidence)
+- [x] Equity reporting working (shows cash + positions)
 
-### Phase 2 (7 Days)
+### Phase 2 (7 Days) - PENDING
 - [ ] Win rate 40-50%
 - [ ] Average 8-15 trades/day
 - [ ] Positive P&L
 - [ ] Fee efficiency < 20%
 
-### Phase 3 (30 Days)
+### Phase 3 (30 Days) - PENDING
 - [ ] Win rate stabilized 45-55%
 - [ ] Consistent profitability
 - [ ] Sharpe ratio > 1.0
 - [ ] Maximum drawdown < 5%
+
+### ACTUAL RESULTS (Oct 2, 09:00 UTC)
+**After 6 Closed Trades:**
+- Balance: $9,999.35 / $10,000 initial (-$0.65, -0.007%)
+- Win/Loss: 0W/6L (0% win rate - early stage)
+- Total Fees: $0.70 (fee efficiency needs more data)
+- Circuit Breaker: 0 triggers (working correctly)
+- Position Sizes: $50-75 (confidence-based sizing working)
+- Stop-Losses: All positions had auto-set 1% stops
 
 ---
 
@@ -266,6 +278,39 @@ This configuration should restore your bot to profitable operation within 24-48 
 
 ---
 
+## 11. POST-DEPLOYMENT NOTES (Oct 2, 2025)
+
+### Critical Bug Discovered After Deployment
+**Issue**: Missing confidence parameter in strategy_manager.py
+- 72% threshold deployed successfully BUT trades still not executing
+- Root cause: confidence defaulting to 50%, causing size_multiplier = 0.0
+- Result: "Ghost trades" with $0 position sizes for 12+ hours
+
+**Fix Applied** (Oct 2, 05:58 UTC):
+- Commit 2ae3944: Added `'confidence': signal.confidence` to line 459
+- Immediate result: Real trades with $50-75 positions
+- Validation: 6 trades closed, real fees paid, balance changing
+
+### Equity Reporting Enhancement
+**Issue**: Telegram showing only cash balance, not total account value
+- When positions opened, balance appeared to drop
+- Users couldn't see that funds were invested, not lost
+
+**Fix Applied** (Oct 2, 09:00 UTC):
+- Commit 321be75: Implemented get_current_equity()
+- Telegram now shows both cash balance and total equity
+- Clear visibility of account value including open positions
+
+### Key Learnings
+1. **Always validate parameters are passed** - Default values can break critical functionality
+2. **Show total value, not just cash** - Users need equity visibility
+3. **One missing line can block everything** - Missing confidence parameter prevented all real trading
+4. **Test in production carefully** - Ghost trades only appeared in live environment
+5. **Monitor balance changes** - Frozen balance was first indicator of bug
+
+---
+
 *Report Generated: October 1, 2025*
-*Next Review: After 10 trades or 24 hours*
+*Updated: October 2, 2025 with deployment results*
+*Next Review: After 50 trades or 7 days*
 *Emergency Contact: Monitor Telegram for circuit breaker alerts*

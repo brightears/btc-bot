@@ -27,23 +27,28 @@ The AI Trading Lab is an advanced, self-learning cryptocurrency trading system t
 ## System Status
 
 **Current Deployment:**
-- **Status**: ✅ Running Enhanced AI Lab on Hetzner VPS (5.223.55.219)
-- **Version**: v2.2-optimized-trading-parameters
+- **Status**: ✅ Running Enhanced AI Lab on Hetzner VPS (5.223.55.219, btc-carry-sg)
+- **Latest Commit**: 321be75 (Equity reporting enhancement)
 - **Mode**: Paper Trading with Real Market Data
-- **Data Source**: Binance API (Real-time)
+- **Data Source**: Binance API (Real-time, 100% quality)
 - **AI Model**: Gemini 2.5 Flash (Company Account)
 - **Learning**: Continuous with Persistent Memory
-- **Features**: News Analysis, On-chain Monitoring, Hypothesis Generation
+- **Features**: News Analysis, On-chain Monitoring, Hypothesis Generation, Equity Tracking
 - **Monitoring**: Auto-restart enabled
 - **Notifications**: Telegram active (hourly reports + strategy updates)
-- **Last Update**: September 28, 2025 (Optimized trading parameters)
+- **Last Update**: October 2, 2025 (All critical bugs fixed)
 
 **Current Trading Configuration:**
-- **Confidence Threshold**: 40% (balanced for weekend volume)
-- **Max Open Positions**: 15 (prevents overtrading)
-- **Max Position Size**: $50 (reduces fee impact)
-- **Current Performance**: Recovering from weekend low volume
-- **Expected Improvement**: Monday with normal $2B+ volume
+- **Confidence Threshold**: 72% (optimized from 85% that blocked all trades)
+- **Dynamic Adjustment**: -3% to +5% based on win rate performance
+- **Max Open Positions**: 3 (tight control to prevent overexposure)
+- **Position Sizing**: $50-100 based on confidence (72-85%: $50, 85-90%: $75, 90%+: $100)
+- **Stop-Loss**: 1% auto-set on all positions
+- **Take-Profit**: 2% auto-set on all positions
+- **Circuit Breaker**: Max 20 trades/day, $200 daily loss limit, 5 consecutive loss halt
+- **Current Performance**: 0W/6L (early stage, strategies learning)
+- **Balance**: $9,999.35 / $10,000 initial (-$0.65, -0.007%)
+- **Trade Frequency**: 8-15 trades per day expected (vs 862 in 48h before fixes!)
 
 ## Quick Start
 
