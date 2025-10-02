@@ -456,6 +456,7 @@ class StrategyManager:
                         {
                             'action': signal.action,
                             'size': signal.size,
+                            'confidence': signal.confidence,  # CRITICAL: Pass confidence for position sizing
                             'stop_loss': getattr(signal, 'stop_loss', None),
                             'take_profit': getattr(signal, 'take_profit', None),
                             'strategy_id': strategy_id
