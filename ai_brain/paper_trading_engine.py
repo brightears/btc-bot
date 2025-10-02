@@ -439,8 +439,12 @@ class PaperTradingEngine:
 
         return triggered_orders
 
-    def get_performance_metrics(self) -> Dict:
-        """Calculate performance metrics from REAL trades"""
+    def get_performance_metrics(self, current_price: float = None) -> Dict:
+        """Calculate performance metrics from REAL trades
+
+        Args:
+            current_price: Current BTC price for equity calculation
+        """
         if not self.closed_trades:
             return {
                 'total_trades': 0,
@@ -456,7 +460,8 @@ class PaperTradingEngine:
                 'max_drawdown': 0,
                 'total_fees_paid': self.total_fees_paid,
                 'current_balance': self.balance,
-                'open_positions': len(self.positions)
+                'open_positions': len(self.positions),
+                'current_equity': self.get_current_equity(current_price)
             }
 
         # Calculate metrics from actual closed trades
@@ -502,16 +507,33 @@ class PaperTradingEngine:
             'total_fees_paid': self.total_fees_paid,
             'current_balance': self.balance,
             'open_positions': len(self.positions),
-            'current_equity': self.get_current_equity()
+            'current_equity': self.get_current_equity(current_price)
         }
 
-    def get_current_equity(self) -> float:
-        """Calculate current account equity including open positions"""
+    def get_current_equity(self, current_price: float = None) -> float:
+        """Calculate current account equity including open positions
+
+        Args:
+            current_price: Current BTC price for calculating unrealized P&L
+
+        Returns:
+            Total account equity (cash balance + value of open positions)
+        """
         equity = self.balance
 
-        # Add unrealized P&L from open positions
-        # Note: This requires current market price
-        # We'll implement this when called with market data
+        # Add value of open positions
+        if self.positions:
+            if current_price and current_price > 0:
+                # Calculate unrealized P&L with current market price
+                for position in self.positions:
+                    position_value = position['size_btc'] * current_price
+                    estimated_exit_fee = position_value * self.taker_fee
+                    net_value = position_value - estimated_exit_fee
+                    equity += net_value
+            else:
+                # No current price available - use original position cost
+                for position in self.positions:
+                    equity += position['size_usdt']
 
         return equity
 

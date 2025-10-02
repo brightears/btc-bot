@@ -632,9 +632,11 @@ class EnhancedAITradingLab:
 
         # Add REAL paper trading performance
         if self.paper_trader:
-            metrics = self.paper_trader.get_performance_metrics()
+            current_price = market_data.get('price') if market_data else None
+            metrics = self.paper_trader.get_performance_metrics(current_price)
             msg += f"\n*Paper Trading (REAL):*\n"
-            msg += f"• Balance: ${metrics['current_balance']:.2f}\n"
+            msg += f"• Cash Balance: ${metrics['current_balance']:.2f}\n"
+            msg += f"• Total Equity: ${metrics['current_equity']:.2f}\n"
             msg += f"• P&L: ${metrics['total_pnl']:+.2f} ({metrics['roi']:+.1f}%)\n"
             msg += f"• Win Rate: {metrics['win_rate']:.1f}%\n"
             msg += f"• Trades: {metrics['winning_trades']}W/{metrics['losing_trades']}L\n"
