@@ -1,0 +1,235 @@
+{
+  "pending": [
+    {
+      "id": "d3aea309",
+      "name": "Social Volume Spike Strategy",
+      "category": "sentiment_indicators",
+      "pattern": "social_volume_spike",
+      "description": "Experimental strategy based on social volume spike patterns",
+      "entry_conditions": [
+        {
+          "type": "sentiment",
+          "condition": "social_volume_spike_triggered"
+        },
+        {
+          "type": "volume",
+          "condition": "above_average"
+        }
+      ],
+      "exit_conditions": [
+        {
+          "type": "take_profit",
+          "value": 1.287530561408419
+        },
+        {
+          "type": "stop_loss",
+          "value": 0.9712296681976356
+        },
+        {
+          "type": "time_based",
+          "value": 18
+        }
+      ],
+      "risk_parameters": {
+        "max_position_size": 450.21386686298064,
+        "max_daily_trades": 1,
+        "max_correlation": 0.7,
+        "required_edge_bps": 0.9608949501347743,
+        "min_liquidity": 1000000
+      },
+      "confidence": 62,
+      "created_at": "2025-09-20T14:55:25.175810+00:00",
+      "status": "pending",
+      "backtest_required": true
+    },
+    {
+      "id": "fb7e2404",
+      "name": "Weekend Effect Strategy",
+      "category": "market_anomalies",
+      "pattern": "weekend_effect",
+      "description": "Exploit lower weekend liquidity and reduced institutional activity for mean reversion trades",
+      "entry_conditions": [
+        {
+          "type": "time_based",
+          "condition": "weekend_effect_active"
+        },
+        {
+          "type": "volatility",
+          "condition": "below_average"
+        }
+      ],
+      "exit_conditions": [
+        {
+          "type": "take_profit",
+          "value": 0.6915432760889264
+        },
+        {
+          "type": "stop_loss",
+          "value": 0.6334699673492007
+        },
+        {
+          "type": "time_based",
+          "value": 22
+        }
+      ],
+      "risk_parameters": {
+        "max_position_size": 134.71703456107238,
+        "max_daily_trades": 3,
+        "max_correlation": 0.7,
+        "required_edge_bps": 0.650725026814992,
+        "min_liquidity": 1000000
+      },
+      "confidence": 58,
+      "created_at": "2025-09-21T02:35:21.049519+00:00",
+      "status": "pending",
+      "backtest_required": true
+    },
+    {
+      "id": "d32d8b44",
+      "name": "Liquidation Cascades Strategy",
+      "category": "defi_indicators",
+      "pattern": "liquidation_cascades",
+      "description": "Experimental strategy based on liquidation cascades patterns",
+      "entry_conditions": [
+        {
+          "type": "on_chain",
+          "condition": "liquidation_cascades_signal"
+        },
+        {
+          "type": "threshold",
+          "condition": "above_threshold"
+        }
+      ],
+      "exit_conditions": [
+        {
+          "type": "take_profit",
+          "value": 0.8460891551108567
+        },
+        {
+          "type": "stop_loss",
+          "value": 0.47646442935762723
+        },
+        {
+          "type": "time_based",
+          "value": 13
+        }
+      ],
+      "risk_parameters": {
+        "max_position_size": 166.79840775469748,
+        "max_daily_trades": 4,
+        "max_correlation": 0.7,
+        "required_edge_bps": 0.47808287791946324,
+        "min_liquidity": 1000000
+      },
+      "confidence": 46,
+      "created_at": "2025-09-21T06:17:12.489394+00:00",
+      "status": "pending",
+      "backtest_required": true
+    },
+    {
+      "id": "9b71226e",
+      "name": "Bridge Volume Anomalies Strategy",
+      "category": "defi_indicators",
+      "pattern": "bridge_volume_anomalies",
+      "description": "Experimental strategy based on bridge volume anomalies patterns",
+      "entry_conditions": [
+        {
+          "type": "on_chain",
+          "condition": "bridge_volume_anomalies_signal"
+        },
+        {
+          "type": "threshold",
+          "condition": "above_threshold"
+        }
+      ],
+      "exit_conditions": [
+        {
+          "type": "take_profit",
+          "value": 1.1724130593862734
+        },
+        {
+          "type": "stop_loss",
+          "value": 0.7359543830250843
+        },
+        {
+          "type": "time_based",
+          "value": 14
+        }
+      ],
+      "risk_parameters": {
+        "max_position_size": 345.03263447472233,
+        "max_daily_trades": 2,
+        "max_correlation": 0.7,
+        "required_edge_bps": 0.7392169538285228,
+        "min_liquidity": 1000000
+      },
+      "confidence": 48,
+      "created_at": "2025-09-21T06:48:13.020886+00:00",
+      "status": "pending",
+      "backtest_required": true
+    },
+    {
+      "id": "6016cebf",
+      "name": "Options Expiry Pressure Strategy",
+      "category": "market_anomalies",
+      "pattern": "options_expiry_pressure",
+      "description": "Position before monthly options expiry for predictable price movements",
+      "entry_conditions": [
+        {
+          "type": "time_based",
+          "condition": "options_expiry_pressure_active"
+        },
+        {
+          "type": "volatility",
+          "condition": "below_average"
+        }
+      ],
+      "exit_conditions": [
+        {
+          "type": "take_profit",
+          "value": 1.7681418314933572
+        },
+        {
+          "type": "stop_loss",
+          "value": 0.9696629221519137
+        },
+        {
+          "type": "time_based",
+          "value": 44
+        },
+        {
+          "type": "event",
+          "condition": "expiry_passed"
+        }
+      ],
+      "risk_parameters": {
+        "max_position_size": 120.37757651353908,
+        "max_daily_trades": 3,
+        "max_correlation": 0.7,
+        "required_edge_bps": 0.3121464160952502,
+        "min_liquidity": 1000000
+      },
+      "confidence": 51,
+      "created_at": "2025-09-21T07:23:20.279000+00:00",
+      "status": "pending",
+      "backtest_required": true
+    }
+  ],
+  "testing": [],
+  "successful": [],
+  "failed": [],
+  "crazy_ideas": [
+    {
+      "id": "45458049",
+      "name": "Twitter CEO Tweet Fade",
+      "category": "crazy_idea",
+      "description": "Counter-trade immediate reactions to influential figure tweets",
+      "source": "Social media overreaction patterns",
+      "confidence": 29,
+      "risk_limit": 100,
+      "created_at": "2025-09-20T14:55:25.176070+00:00",
+      "status": "experimental",
+      "explanation": "AI generated this based on: Social media overreaction patterns"
+    }
+  ]
+}
