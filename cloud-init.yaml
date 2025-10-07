@@ -77,9 +77,6 @@ runcmd:
     TELEGRAM_TOKEN=8476508713:AAFhMSVEQ_rgG9qTL-LpVTtFSqDA0DPbzUI
     TELEGRAM_CHAT_ID=8352324945
 
-    # AI/LLM Configuration
-    GEMINI_API_KEY=AIzaSyB7-SLqrE0hYdtszqDXmxvcC-4XioY_Zz0
-
     # VPS Credentials (Hetzner)
     VPS_HOST=5.223.55.219
     VPS_USER=root
