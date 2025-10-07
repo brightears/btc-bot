@@ -1,0 +1,107 @@
+#cloud-config
+
+# Fix DNS first - critical for all downloads
+write_files:
+  - path: /etc/systemd/resolved.conf
+    content: |
+      [Resolve]
+      DNS=8.8.8.8 8.8.4.4
+      FallbackDNS=1.1.1.1 1.0.0.1
+      DNSStubListener=yes
+    permissions: '0644'
+
+  - path: /etc/ssh/sshd_config.d/99-enable-password-auth.conf
+    content: |
+      PasswordAuthentication yes
+      PermitRootLogin yes
+    permissions: '0644'
+
+# System updates and package installation
+package_update: true
+package_upgrade: true
+
+packages:
+  - git
+  - python3
+  - python3-pip
+  - python3-venv
+  - build-essential
+  - wget
+  - curl
+  - htop
+  - screen
+
+runcmd:
+  # Restart DNS resolution
+  - systemctl restart systemd-resolved
+  - sleep 5
+
+  # Install TA-Lib from source
+  - cd /tmp
+  - wget --timeout=120 http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz || wget --timeout=120 https://downloads.sourceforge.net/project/ta-lib/ta-lib/0.4.0/ta-lib-0.4.0-src.tar.gz
+  - tar -xzf ta-lib-0.4.0-src.tar.gz
+  - cd ta-lib
+  - ./configure --prefix=/usr
+  - make
+  - make install
+  - ldconfig
+
+  # Clone bot repository
+  - cd /root
+  - git clone https://github.com/brightears/btc-bot.git
+  - cd btc-bot
+
+  # Create Python virtual environment
+  - python3 -m venv .venv
+
+  # Install Python dependencies
+  - /root/btc-bot/.venv/bin/pip install --upgrade pip
+  - /root/btc-bot/.venv/bin/pip install freqtrade python-dotenv ccxt pyyaml tenacity
+
+  # Create .env file with credentials
+  - |
+    cat > /root/btc-bot/.env << 'ENVEOF'
+    # Runtime toggles
+    LIVE_TRADING=NO
+    KILL=0
+
+    # Binance API credentials (spot)
+    BINANCE_KEY=7oLIWbKlJmDnEx7Ja9FDW4vBhkkZtw8EjklmYV1MQCDnoyV8KGcoVfcGaAHksjIs
+    BINANCE_SECRET=WuoEGtzcfiMiE1xwChZdMIq3H6ujhqkCy2M6FZaYWXw1Qc58a1GFc4lf2J9HfVoj
+
+    # Binance USDⓈ-M API credentials (perp)
+    BINANCE_USDM_API_KEY=YOUR_BINANCE_USDM_KEY
+    BINANCE_USDM_API_SECRET=YOUR_BINANCE_USDM_SECRET
+
+    # Telegram notifications
+    TELEGRAM_TOKEN=8476508713:AAFhMSVEQ_rgG9qTL-LpVTtFSqDA0DPbzUI
+    TELEGRAM_CHAT_ID=8352324945
+
+    # AI/LLM Configuration
+    GEMINI_API_KEY=AIzaSyB7-SLqrE0hYdtszqDXmxvcC-4XioY_Zz0
+
+    # VPS Credentials (Hetzner)
+    VPS_HOST=5.223.55.219
+    VPS_USER=root
+    VPS_PASSWORD=d4FM9j4evXW7
+    HETZNER_API_TOKEN=USqbtSwLR4RJJBEPl0tBRMgRoT7fEdQV34hoxLRN7IguWuzhMedjaegleIO37btI
+    ENVEOF
+
+  # Update config from env
+  - cd /root/btc-bot && /root/btc-bot/.venv/bin/python update_config_from_env.py || echo "Config update skipped"
+
+  # Restart SSH to enable password auth
+  - systemctl restart sshd
+
+  # Log completion
+  - echo "Cloud-init setup complete at $(date)" >> /root/setup.log
+  - echo "TA-Lib version:" >> /root/setup.log
+  - ldconfig -p | grep talib >> /root/setup.log
+  - echo "Freqtrade version:" >> /root/setup.log
+  - /root/btc-bot/.venv/bin/freqtrade --version >> /root/setup.log 2>&1
+
+# Set timezone
+timezone: UTC
+
+# Final message
+final_message: "BTC Bot VPS setup completed in $UPTIME seconds"

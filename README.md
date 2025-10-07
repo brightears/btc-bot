@@ -27,64 +27,80 @@ The AI Trading Lab is an advanced, self-learning cryptocurrency trading system t
 ## System Status
 
 **Current Deployment:**
-- **Status**: ✅ Running Enhanced AI Lab on Hetzner VPS (5.223.55.219, btc-carry-sg)
-- **Latest Commit**: 321be75 (Equity reporting enhancement)
-- **Mode**: Paper Trading with Real Market Data
-- **Data Source**: Binance API (Real-time, 100% quality)
-- **AI Model**: Gemini 2.5 Flash (Company Account)
-- **Learning**: Continuous with Persistent Memory
-- **Features**: News Analysis, On-chain Monitoring, Hypothesis Generation, Equity Tracking
-- **Monitoring**: Auto-restart enabled
-- **Notifications**: Telegram active (hourly reports + strategy updates)
-- **Last Update**: October 2, 2025 (All critical bugs fixed)
+- **Status**: ✅ Running Freqtrade 2025.6 on Hetzner VPS (5.223.55.219, btc-carry-sg)
+- **Framework**: Freqtrade (migrated from custom bot on Oct 7, 2025)
+- **Mode**: Dry-run (Paper Trading)
+- **Strategy**: SimpleRSI (5m timeframe)
+- **Trading Pair**: BTC/USDT
+- **Virtual Capital**: $10,000 USDT
+- **Exchange**: Binance (via CCXT 4.5.7)
+- **Notifications**: Telegram active (real-time trade alerts)
+- **Last Update**: October 7, 2025 (Successful Freqtrade migration & deployment)
 
 **Current Trading Configuration:**
-- **Confidence Threshold**: 72% (optimized from 85% that blocked all trades)
-- **Dynamic Adjustment**: -3% to +5% based on win rate performance
-- **Max Open Positions**: 3 (tight control to prevent overexposure)
-- **Position Sizing**: $50-100 based on confidence (72-85%: $50, 85-90%: $75, 90%+: $100)
-- **Stop-Loss**: 1% auto-set on all positions
-- **Take-Profit**: 2% auto-set on all positions
-- **Circuit Breaker**: Max 20 trades/day, $200 daily loss limit, 5 consecutive loss halt
-- **Current Performance**: 0W/6L (early stage, strategies learning)
-- **Balance**: $9,999.35 / $10,000 initial (-$0.65, -0.007%)
-- **Trade Frequency**: 8-15 trades per day expected (vs 862 in 48h before fixes!)
+- **Max Open Trades**: 3
+- **Stake per Trade**: $100 USDT
+- **Minimum ROI**: 2%
+- **Trailing Stoploss**: -1%
+- **Timeframe**: 5m
+- **Position Adjustment**: Off
+- **Order Types**: Limit orders (entry/exit)
+- **Balance**: $10,000 USDT (dry-run wallet)
 
 ## Quick Start
 
-### Local Testing
+### New VPS Deployment (Hetzner Cloud)
+
+**Complete deployment guide**: See [DEPLOYMENT_SUCCESS_2025_10_07.md](DEPLOYMENT_SUCCESS_2025_10_07.md)
+
+**Quick deployment:**
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# 1. Generate SSH key
+ssh-keygen -t ed25519 -f ~/.ssh/hetzner_btc_bot -C "btc-bot-vps"
 
-# Configure environment
-cp .env.example .env
-# Edit .env with your API keys
+# 2. Use rescue mode to add SSH key (if locked out)
+# See DEPLOYMENT_SUCCESS_2025_10_07.md for rescue mode procedure
 
-# Start AI Trading Lab
-python ai_trading_lab.py
+# 3. Deploy Freqtrade (once SSH works)
+ssh -i ~/.ssh/hetzner_btc_bot root@YOUR_VPS_IP
+cd /root && git clone https://github.com/brightears/btc-bot.git
+cd btc-bot
+# Follow deployment steps in DEPLOYMENT_SUCCESS_2025_10_07.md
 ```
 
-### VPS Management
+### VPS Management (Freqtrade)
 ```bash
 # SSH to VPS
-ssh root@5.223.55.219
+ssh -i ~/.ssh/hetzner_btc_bot root@5.223.55.219
 
-# Check status
-python get_status.py
+# Check bot status
+ps aux | grep freqtrade
+tail -f /root/btc-bot/freqtrade.log
 
-# View logs
-tail -f ai_lab.log
+# Start/Stop bot
+cd /root/btc-bot
+source .venv/bin/activate
 
-# Approve a strategy
-python approve_strategy.py STRATEGY_ID
+# Start
+nohup freqtrade trade --config config.json > freqtrade.log 2>&1 &
 
-# Enable live trading (requires double confirmation)
-python go_live.py
+# Stop
+pkill -f freqtrade
 
-# Emergency stop
-python stop_trading.py
+# Run strategy rotation
+python strategy_rotator.py
+
+# Update config from .env
+python update_config_from_env.py
 ```
+
+### Telegram Commands
+Once the bot is running, use these commands in Telegram:
+- `/status` - Current open trades
+- `/profit` - Profit/loss summary
+- `/balance` - Wallet balance
+- `/daily` - Daily statistics
+- `/help` - All available commands
 
 ## Architecture
 
