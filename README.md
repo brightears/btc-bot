@@ -32,14 +32,14 @@ The AI Trading Lab is an advanced, self-learning cryptocurrency trading system t
 - **Mode**: Dry-run (Paper Trading)
 - **Architecture**: Multi-bot parallel testing (Week 2+)
 - **Active Strategies**:
-  - **Bot 1**: Strategy001 (Trend following, optimized)
-  - **Bot 2**: Strategy004 (Hybrid multi-indicator, optimized)
-  - **Bot 3**: SimpleRSI (Mean reversion, original params)
+  - **Bot 1**: Strategy001 (Trend following, optimized) - Telegram ✅ ENABLED
+  - **Bot 2**: Strategy004 (Hybrid multi-indicator, optimized) - Telegram ❌ DISABLED
+  - **Bot 3**: SimpleRSI (Mean reversion, original params) - Telegram ❌ DISABLED
 - **Trading Pair**: BTC/USDT
 - **Virtual Capital**: $9,000 USDT total ($3,000 per bot)
 - **Exchange**: Binance (via CCXT 4.5.7)
-- **Notifications**: Telegram active (real-time trade alerts with bot names)
-- **Last Update**: October 13, 2025 (Week 1 analysis, community strategies, multi-bot deployment)
+- **Notifications**: Bot 1 sends Telegram alerts; Bot 2 & Bot 3 trade silently
+- **Last Update**: October 13, 2025, 8:20 AM UTC (Telegram conflict resolved)
 
 **Week 1 Performance (Oct 7-13):**
 - **Trades**: 15 total

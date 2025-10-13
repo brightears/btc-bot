@@ -535,6 +535,69 @@ grep -i "error\|exception\|traceback" bot1_strategy001/freqtrade.log
 
 ---
 
+## Telegram Configuration - Single Bot Notifications
+
+### Current Setup (Oct 13, 2025)
+
+**Configuration:**
+- **Bot 1 (Strategy001)**: Telegram ENABLED ✅
+- **Bot 2 (Strategy004)**: Telegram DISABLED ❌
+- **Bot 3 (SimpleRSI)**: Telegram DISABLED ❌
+
+**Reason:** All 3 bots using same Telegram token caused conflicts. Only one bot can poll for commands at a time.
+
+**Result:**
+- ✅ Bot 1 sends trade entry/exit notifications
+- ✅ No Telegram errors in logs
+- ❌ Bot 2 & Bot 3 trade silently (no notifications)
+- ✅ All trade data still collected in databases
+
+### How to Monitor Bot 2 & Bot 3
+
+**Via VPS Logs:**
+```bash
+# Check Bot 2 trades
+tail -50 bot2_strategy004/freqtrade.log | grep -E "Entering|Exiting"
+
+# Check Bot 3 trades
+tail -50 bot3_simplersi/freqtrade.log | grep -E "Entering|Exiting"
+```
+
+**Via Database Queries:**
+```bash
+# Bot 2 recent trades
+sqlite3 bot2_strategy004/tradesv3.dryrun.sqlite \
+  "SELECT pair, open_date, close_date, profit_ratio FROM trades ORDER BY id DESC LIMIT 5;"
+
+# Bot 3 recent trades
+sqlite3 bot3_simplersi/tradesv3.dryrun.sqlite \
+  "SELECT pair, open_date, close_date, profit_ratio FROM trades ORDER BY id DESC LIMIT 5;"
+```
+
+**Ask Claude to Analyze:**
+When you want a comprehensive view, just say:
+```
+"Hey Claude, analyze performance for all 3 bots this week"
+```
+
+### How to Re-enable Telegram for Bot 2 & Bot 3
+
+**See WEEK_2_CHECKPOINT.md for complete instructions:**
+- Option A: Quick rollback using backups
+- Option B: Manual re-enable (still causes conflicts)
+- Option C: Create 3 separate Telegram bots (proper solution)
+
+**Quick rollback command:**
+```bash
+ssh -i ~/.ssh/hetzner_btc_bot root@5.223.55.219
+cd /root/btc-bot
+cp bot2_strategy004/config.json.telegram_enabled.backup bot2_strategy004/config.json
+cp bot3_simplersi/config.json.telegram_enabled.backup bot3_simplersi/config.json
+# Then restart Bot 2 & Bot 3
+```
+
+---
+
 ## Monitoring Commands
 
 ### Quick Status Check

@@ -64,9 +64,13 @@ Create a simple spreadsheet or note:
 ## 🤖 Multi-Bot Monitoring (Week 2+)
 
 **Starting Week 2 (Oct 13), we're running 3 strategies in parallel:**
-- Bot 1: Strategy001 (Trend following)
-- Bot 2: Strategy004 (Hybrid multi-indicator)
-- Bot 3: SimpleRSI (Mean reversion)
+- Bot 1: Strategy001 (Trend following) - **Telegram ENABLED** ✅
+- Bot 2: Strategy004 (Hybrid multi-indicator) - **Telegram DISABLED** ❌
+- Bot 3: SimpleRSI (Mean reversion) - **Telegram DISABLED** ❌
+
+**Important:** Only Bot 1 sends Telegram notifications. Bot 2 & Bot 3 trade silently.
+- You'll see Bot 1 trades in Telegram
+- Bot 2 & Bot 3 data must be checked via VPS logs or weekly Claude analysis
 
 ### Daily Multi-Bot Checklist
 
@@ -583,6 +587,14 @@ tail -f freqtrade.log  # View live logs
 "Hey Claude, I have a question about [topic from this guide]..."
 ```
 
-**Last Updated**: October 7, 2025
-**Bot Status**: Running (SimpleRSI, 5m, BTC/USDT)
-**Next Rotation**: Sunday, October 13, 2025
+**Important Note on Telegram (Oct 13, 2025):**
+- Only Bot 1 (Strategy001) sends Telegram notifications
+- Bot 2 & Bot 3 trade silently (Telegram disabled to avoid conflicts)
+- All trade data still collected in databases
+- For Bot 2/Bot 3 monitoring: Check VPS logs or ask Claude for weekly analysis
+- See WEEK_2_CHECKPOINT.md for rollback/re-enable instructions
+
+**Last Updated**: October 13, 2025, 8:20 AM UTC
+**Bot Status**: 3-bot parallel (Strategy001, Strategy004, SimpleRSI)
+**Telegram Config**: Bot 1 enabled, Bot 2 & Bot 3 disabled
+**Next Review**: Sunday, October 20, 2025

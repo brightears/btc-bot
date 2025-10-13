@@ -522,6 +522,42 @@ Instead of waiting until Week 3 as originally planned, we accelerated the commun
 
 ---
 
-**Last Updated**: October 13, 2025
+### Telegram Conflict Resolution (Oct 13, 8:20 AM UTC)
+
+**Issue Discovered:**
+- All 3 bots tried to use same Telegram token simultaneously
+- Only Bot 1 could send messages, Bot 2 & Bot 3 logs filled with errors
+- Trade notifications only visible from Bot 1
+
+**Solution Implemented:**
+- Disabled Telegram for Bot 2 (Strategy004) & Bot 3 (SimpleRSI)
+- Kept Bot 1 (Strategy001) Telegram enabled
+- Created config backups for rollback: `config.json.telegram_enabled.backup`
+- Restarted Bot 2 & Bot 3 with updated config
+
+**Result:**
+- ✅ Bot 1 sends all trade notifications to Telegram
+- ✅ Bot 2 & Bot 3 trade silently (no notifications)
+- ✅ All trade data still collected in databases
+- ✅ Clean logs (no Telegram errors)
+- ✅ Monitoring via VPS logs or weekly Claude analysis
+
+**Configuration Files:**
+- Bot 1: `bot1_strategy001/config.json` - Telegram enabled
+- Bot 2: `bot2_strategy004/config.json` - Telegram disabled
+- Bot 3: `bot3_simplersi/config.json` - Telegram disabled
+
+**Backups Created:**
+- `/root/btc-bot/bot2_strategy004/config.json.telegram_enabled.backup`
+- `/root/btc-bot/bot3_simplersi/config.json.telegram_enabled.backup`
+
+**Future Option:** Create 3 separate Telegram bots for complete visibility (see WEEK_2_CHECKPOINT.md)
+
+**Rollback Instructions:** See [WEEK_2_CHECKPOINT.md](WEEK_2_CHECKPOINT.md)
+
+---
+
+**Last Updated**: October 13, 2025, 8:20 AM UTC
 **Current Status**: 3-bot parallel deployment (Strategy001, Strategy004, SimpleRSI)
+**Telegram Config**: Bot 1 enabled, Bot 2 & Bot 3 disabled
 **Next Review**: October 20, 2025 (Week 2 performance analysis)
