@@ -30,22 +30,33 @@ The AI Trading Lab is an advanced, self-learning cryptocurrency trading system t
 - **Status**: ✅ Running Freqtrade 2025.6 on Hetzner VPS (5.223.55.219, btc-carry-sg)
 - **Framework**: Freqtrade (migrated from custom bot on Oct 7, 2025)
 - **Mode**: Dry-run (Paper Trading)
-- **Strategy**: SimpleRSI (5m timeframe)
+- **Architecture**: Multi-bot parallel testing (Week 2+)
+- **Active Strategies**:
+  - **Bot 1**: Strategy001 (Trend following, optimized)
+  - **Bot 2**: Strategy004 (Hybrid multi-indicator, optimized)
+  - **Bot 3**: SimpleRSI (Mean reversion, original params)
 - **Trading Pair**: BTC/USDT
-- **Virtual Capital**: $10,000 USDT
+- **Virtual Capital**: $9,000 USDT total ($3,000 per bot)
 - **Exchange**: Binance (via CCXT 4.5.7)
-- **Notifications**: Telegram active (real-time trade alerts)
-- **Last Update**: October 7, 2025 (Successful Freqtrade migration & deployment)
+- **Notifications**: Telegram active (real-time trade alerts with bot names)
+- **Last Update**: October 13, 2025 (Week 1 analysis, community strategies, multi-bot deployment)
 
-**Current Trading Configuration:**
-- **Max Open Trades**: 3
+**Week 1 Performance (Oct 7-13):**
+- **Trades**: 15 total
+- **Win Rate**: 33.33%
+- **P&L**: -$12.81 (includes -$11.96 loss from Oct 10 Bitcoin crash)
+- **Strategy**: SimpleRSI (single bot)
+- **Analysis**: See [WEEK_1_COMMUNITY_STRATEGIES_REPORT.md](WEEK_1_COMMUNITY_STRATEGIES_REPORT.md)
+
+**Current Trading Configuration (Per Bot):**
+- **Max Open Trades**: 1 per bot (3 total system-wide)
 - **Stake per Trade**: $100 USDT
-- **Minimum ROI**: 2%
-- **Trailing Stoploss**: -1%
+- **Minimum ROI**: Varies by strategy (optimized)
+- **Stop-loss**: -6% (Strategy001, Strategy004), -10% (SimpleRSI)
 - **Timeframe**: 5m
 - **Position Adjustment**: Off
 - **Order Types**: Limit orders (entry/exit)
-- **Balance**: $10,000 USDT (dry-run wallet)
+- **Balance per Bot**: $3,000 USDT (dry-run wallet)
 
 ## Quick Start
 
@@ -294,13 +305,29 @@ pkill -f ai_trading_lab
 # monitor_bot.sh will auto-restart
 ```
 
+## Documentation
+
+### Key Documentation Files
+
+**Deployment & Setup:**
+- [DEPLOYMENT_SUCCESS_2025_10_07.md](DEPLOYMENT_SUCCESS_2025_10_07.md) - Full deployment story and setup guide
+- [MULTI_BOT_DEPLOYMENT_GUIDE.md](MULTI_BOT_DEPLOYMENT_GUIDE.md) - Step-by-step multi-bot deployment instructions
+
+**Monitoring & Management:**
+- [WEEKLY_MONITORING_GUIDE.md](WEEKLY_MONITORING_GUIDE.md) - Daily/weekly monitoring procedures
+- [WEEK_1_COMMUNITY_STRATEGIES_REPORT.md](WEEK_1_COMMUNITY_STRATEGIES_REPORT.md) - Week 1 analysis and strategy evaluation
+
+**Project History:**
+- [MIGRATION_SUMMARY.md](MIGRATION_SUMMARY.md) - Why we migrated to Freqtrade
+- [README.md](README.md) - This file (project overview)
+
 ## Support
 
 For issues or questions:
-- Check logs: `tail -f ai_lab.log`
-- View status: `python get_status.py`
-- Emergency stop: `python stop_trading.py`
-- Telegram notifications for real-time updates
+- Check logs: `tail -f freqtrade.log` (on VPS)
+- View bot status: `ps aux | grep freqtrade`
+- Telegram commands: `/status`, `/profit`, `/help`
+- Emergency stop: `pkill -f freqtrade`
 
 ## License
 

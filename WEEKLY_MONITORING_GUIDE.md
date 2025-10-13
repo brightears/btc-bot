@@ -61,16 +61,77 @@ Create a simple spreadsheet or note:
 
 ---
 
+## 🤖 Multi-Bot Monitoring (Week 2+)
+
+**Starting Week 2 (Oct 13), we're running 3 strategies in parallel:**
+- Bot 1: Strategy001 (Trend following)
+- Bot 2: Strategy004 (Hybrid multi-indicator)
+- Bot 3: SimpleRSI (Mean reversion)
+
+### Daily Multi-Bot Checklist
+
+**Morning (5 minutes):**
+- [ ] Check Telegram for ALL 3 bots (look for bot name in messages)
+- [ ] Send `/status` to each bot separately
+- [ ] Note which bots have open trades
+
+**Evening (10 minutes):**
+- [ ] Send `/profit` to Bot1, Bot2, Bot3
+- [ ] Update tracking spreadsheet with all 3 P&Ls
+- [ ] Compare performance: which bot is winning today?
+
+### Tracking Spreadsheet Format
+
+| Date | Bot1 P/L | Bot2 P/L | Bot3 P/L | Combined | Winner | Notes |
+|------|----------|----------|----------|----------|--------|-------|
+| Oct 13 | $0 | $0 | $0 | $0 | - | First day |
+| Oct 14 | +$2.50 | -$0.80 | +$1.20 | +$2.90 | Bot1 | Bot1 trending well |
+
+### Weekly Comparison (Sundays)
+
+**Calculate for EACH bot:**
+- Win rate
+- Total P/L
+- Number of trades
+- Best/worst trade
+
+**Example:**
+```
+Bot1 (Strategy001):
+- Win Rate: 60%
+- P/L: +$12.50
+- Trades: 7
+- Winner: Bot1 🏆
+
+Bot2 (Strategy004):
+- Win Rate: 55%
+- P/L: +$8.30
+- Trades: 5
+
+Bot3 (SimpleRSI):
+- Win Rate: 35%
+- P/L: -$4.20
+- Trades: 22
+```
+
+**Decision:** Deploy Bot1 (Strategy001) as main strategy for Week 3
+
+---
+
 ## 🔍 What to Look For
 
 ### ✅ Good Signs (Everything Normal)
 
-- **Win Rate**: 40-60% (for mean reversion strategy like SimpleRSI)
-- **Trade Frequency**: 5-15 trades per day
-- **Average Trade Duration**: 30 minutes - 2 hours
-- **Profit per Trade**: $1-5 on winners, $0.50-1 on losers
-- **Max Drawdown**: Stays under 5% ($500)
-- **No Error Messages**: Bot runs smoothly
+**Per-Bot Expectations:**
+- **Bot1 (Strategy001):** 0.7 trades/day, 60-75% win rate, longer holds
+- **Bot2 (Strategy004):** 0.5 trades/day, 60-70% win rate, short holds
+- **Bot3 (SimpleRSI):** 3 trades/day, 35-45% win rate, frequent trades
+
+**Combined:**
+- **Trade Frequency**: 4-7 trades per day across all bots
+- **At Least 1 Bot Positive**: Not all bots need to win, but at least 1 should be positive
+- **Max Single Loss**: ≤$6 for Bot1/Bot2, ≤$2 for Bot3
+- **No Error Messages**: All 3 bots run smoothly
 
 ### ⚠️ Warning Signs (Needs Attention)
 

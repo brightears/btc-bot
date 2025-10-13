@@ -53,3 +53,9 @@ Thumbs.db
 
 # State files
 state.json
+
+# Deployment scripts with credentials (DO NOT COMMIT)
+deploy_full.sh
+deploy_vps_with_password.sh
+install_talib_and_deploy.sh
+deploy_to_hetzner_cloudinit.sh
