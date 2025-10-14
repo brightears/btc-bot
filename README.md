@@ -326,6 +326,7 @@ pkill -f ai_trading_lab
 - [MULTI_BOT_DEPLOYMENT_GUIDE.md](MULTI_BOT_DEPLOYMENT_GUIDE.md) - Step-by-step multi-bot deployment instructions
 
 **Monitoring & Management:**
+- [MONITORING_SYSTEM.md](MONITORING_SYSTEM.md) - **NEW**: Auto-restart monitoring (Oct 14, 2025)
 - [WEEKLY_MONITORING_GUIDE.md](WEEKLY_MONITORING_GUIDE.md) - Daily/weekly monitoring procedures
 - [WEEK_1_COMMUNITY_STRATEGIES_REPORT.md](WEEK_1_COMMUNITY_STRATEGIES_REPORT.md) - Week 1 BTC analysis
 - [PAXG_DEPLOYMENT_REPORT.md](PAXG_DEPLOYMENT_REPORT.md) - Gold trading deployment (Oct 14, 2025)
