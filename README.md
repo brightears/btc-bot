@@ -30,16 +30,21 @@ The AI Trading Lab is an advanced, self-learning cryptocurrency trading system t
 - **Status**: ✅ Running Freqtrade 2025.6 on Hetzner VPS (5.223.55.219, btc-carry-sg)
 - **Framework**: Freqtrade (migrated from custom bot on Oct 7, 2025)
 - **Mode**: Dry-run (Paper Trading)
-- **Architecture**: Multi-bot parallel testing (Week 2+)
+- **Architecture**: 6-bot parallel testing (3 BTC + 3 PAXG gold)
 - **Active Strategies**:
-  - **Bot 1**: Strategy001 (Trend following, optimized) - Telegram ✅ ENABLED
-  - **Bot 2**: Strategy004 (Hybrid multi-indicator, optimized) - Telegram ❌ DISABLED
-  - **Bot 3**: SimpleRSI (Mean reversion, original params) - Telegram ❌ DISABLED
-- **Trading Pair**: BTC/USDT
-- **Virtual Capital**: $9,000 USDT total ($3,000 per bot)
+  - **BTC Bots** (Bitcoin Trading):
+    - **Bot 1**: Strategy001 (Trend following, optimized) - $3,000
+    - **Bot 2**: Strategy004 (Hybrid multi-indicator, optimized) - $3,000
+    - **Bot 3**: SimpleRSI (Mean reversion, original params) - $3,000
+  - **PAXG Bots** (Gold Trading - NEW Oct 14):
+    - **Bot 4**: Strategy004 Baseline (PAXG/USDT) - $3,000
+    - **Bot 5**: Strategy004 Optimized (PAXG/USDT, gold-tuned) ⭐ - $3,000
+    - **Bot 6**: Strategy001 (PAXG/USDT, comparison) - $3,000
+- **Trading Pairs**: BTC/USDT (Bots 1-3), PAXG/USDT (Bots 4-6)
+- **Virtual Capital**: $18,000 USDT total ($9K BTC + $9K PAXG)
 - **Exchange**: Binance (via CCXT 4.5.7)
-- **Notifications**: Bot 1 sends Telegram alerts; Bot 2 & Bot 3 trade silently
-- **Last Update**: October 13, 2025, 8:20 AM UTC (Telegram conflict resolved)
+- **Notifications**: All Telegram disabled (analysis via databases)
+- **Last Update**: October 14, 2025, 10:00 AM UTC (Added 3 PAXG gold bots)
 
 **Week 1 Performance (Oct 7-13):**
 - **Trades**: 15 total
@@ -49,11 +54,18 @@ The AI Trading Lab is an advanced, self-learning cryptocurrency trading system t
 - **Analysis**: See [WEEK_1_COMMUNITY_STRATEGIES_REPORT.md](WEEK_1_COMMUNITY_STRATEGIES_REPORT.md)
 
 **Current Trading Configuration (Per Bot):**
-- **Max Open Trades**: 1 per bot (3 total system-wide)
+- **Max Open Trades**: 1 per bot (6 total system-wide)
 - **Stake per Trade**: $100 USDT
-- **Minimum ROI**: Varies by strategy (optimized)
-- **Stop-loss**: -6% (Strategy001, Strategy004), -10% (SimpleRSI)
-- **Timeframe**: 5m
+- **Minimum ROI**: Varies by strategy
+  - BTC bots: 1-3% (optimized for volatility)
+  - PAXG Bot 4: 1-3% (baseline)
+  - PAXG Bot 5: 2-7% (gold-optimized, wider targets)
+  - PAXG Bot 6: 1-3% (baseline)
+- **Stop-loss**:
+  - BTC: -6% (Strategy001, Strategy004), -10% (SimpleRSI)
+  - PAXG Bot 4/6: -6%, PAXG Bot 5: -4% (gold-tuned)
+- **Trailing Stops**: Bot 5 only (gold-optimized)
+- **Timeframe**: 5m (all bots)
 - **Position Adjustment**: Off
 - **Order Types**: Limit orders (entry/exit)
 - **Balance per Bot**: $3,000 USDT (dry-run wallet)
@@ -315,7 +327,8 @@ pkill -f ai_trading_lab
 
 **Monitoring & Management:**
 - [WEEKLY_MONITORING_GUIDE.md](WEEKLY_MONITORING_GUIDE.md) - Daily/weekly monitoring procedures
-- [WEEK_1_COMMUNITY_STRATEGIES_REPORT.md](WEEK_1_COMMUNITY_STRATEGIES_REPORT.md) - Week 1 analysis and strategy evaluation
+- [WEEK_1_COMMUNITY_STRATEGIES_REPORT.md](WEEK_1_COMMUNITY_STRATEGIES_REPORT.md) - Week 1 BTC analysis
+- [PAXG_DEPLOYMENT_REPORT.md](PAXG_DEPLOYMENT_REPORT.md) - Gold trading deployment (Oct 14, 2025)
 
 **Project History:**
 - [MIGRATION_SUMMARY.md](MIGRATION_SUMMARY.md) - Why we migrated to Freqtrade
