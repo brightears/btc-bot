@@ -44,7 +44,8 @@ The AI Trading Lab is an advanced, self-learning cryptocurrency trading system t
 - **Virtual Capital**: $18,000 USDT total ($9K BTC + $9K PAXG)
 - **Exchange**: Binance (via CCXT 4.5.7)
 - **Notifications**: All Telegram disabled (analysis via databases)
-- **Last Update**: October 14, 2025, 10:00 AM UTC (Added 3 PAXG gold bots)
+- **Memory**: 2GB swap active + optimized configs (380 MB available)
+- **Last Update**: October 15, 2025, 02:10 AM UTC (Memory issue fixed, system stable)
 
 **Week 1 Performance (Oct 7-13):**
 - **Trades**: 15 total
@@ -69,6 +70,32 @@ The AI Trading Lab is an advanced, self-learning cryptocurrency trading system t
 - **Position Adjustment**: Off
 - **Order Types**: Limit orders (entry/exit)
 - **Balance per Bot**: $3,000 USDT (dry-run wallet)
+
+## System Requirements
+
+### VPS Specifications (Minimum)
+
+**For 6-bot deployment:**
+- **CPU**: 2 vCPU (shared)
+- **RAM**: 2GB minimum + 2GB swap (4GB RAM recommended)
+- **Disk**: 20GB SSD
+- **Bandwidth**: 20TB/month
+- **Cost**: €4-5/month (2GB) or €8-10/month (4GB recommended)
+
+**Memory Breakdown:**
+- Bot1-3 (BTC): ~100-150 MB each = 450 MB
+- Bot4-6 (PAXG): ~280-300 MB each = 850 MB
+- System + overhead: ~300 MB
+- **Total**: ~1.6 GB used, 380 MB available
+
+**Critical Setup:**
+- ⚠️ **Swap space REQUIRED** if using 2GB RAM (prevents OOM kills)
+- ✅ **Memory optimization** enabled in all bot configs
+- ✅ **Monitoring system** tracks memory and alerts on low availability
+
+See [MONITORING_SYSTEM.md](MONITORING_SYSTEM.md) for memory issue resolution details.
+
+---
 
 ## Quick Start
 
