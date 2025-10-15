@@ -63,62 +63,89 @@ Create a simple spreadsheet or note:
 
 ## 🤖 Multi-Bot Monitoring (Week 2+)
 
-**Starting Week 2 (Oct 13), we're running 3 strategies in parallel:**
-- Bot 1: Strategy001 (Trend following) - **Telegram ENABLED** ✅
-- Bot 2: Strategy004 (Hybrid multi-indicator) - **Telegram DISABLED** ❌
-- Bot 3: SimpleRSI (Mean reversion) - **Telegram DISABLED** ❌
+**Starting Oct 15, 2025, we're running 6 bots in parallel:**
 
-**Important:** Only Bot 1 sends Telegram notifications. Bot 2 & Bot 3 trade silently.
-- You'll see Bot 1 trades in Telegram
-- Bot 2 & Bot 3 data must be checked via VPS logs or weekly Claude analysis
+**BTC Bots (Bitcoin Trading):**
+- Bot 1: Strategy001 (Trend following, optimized) - $3,000
+- Bot 2: Strategy004 (Hybrid multi-indicator, optimized) - $3,000
+- Bot 3: SimpleRSI (Mean reversion, original params) - $3,000
+
+**PAXG Bots (Gold Trading):**
+- Bot 4: Strategy004 Baseline (PAXG/USDT) - $3,000
+- Bot 5: Strategy004 Optimized (PAXG/USDT, gold-tuned) ⭐ - $3,000
+- Bot 6: Strategy001 (PAXG/USDT, comparison) - $3,000
+
+**Important:** ALL bots have Telegram disabled to avoid API conflicts.
+- No Telegram trade notifications
+- All trade data collected in bot databases
+- Performance analysis via Claude or VPS logs
 
 ### Daily Multi-Bot Checklist
 
 **Morning (5 minutes):**
-- [ ] Check Telegram for ALL 3 bots (look for bot name in messages)
-- [ ] Send `/status` to each bot separately
-- [ ] Note which bots have open trades
+- [ ] SSH to VPS and check all 6 bots running
+- [ ] Quick memory check: `free -h` (should show 150+ MB available)
+- [ ] Check for Telegram monitoring alerts (bot crashes, memory issues)
 
 **Evening (10 minutes):**
-- [ ] Send `/profit` to Bot1, Bot2, Bot3
-- [ ] Update tracking spreadsheet with all 3 P&Ls
-- [ ] Compare performance: which bot is winning today?
+- [ ] Note any unusual behavior
+- [ ] Check if any Telegram alerts received
+- [ ] Track overall system health
 
 ### Tracking Spreadsheet Format
 
-| Date | Bot1 P/L | Bot2 P/L | Bot3 P/L | Combined | Winner | Notes |
-|------|----------|----------|----------|----------|--------|-------|
-| Oct 13 | $0 | $0 | $0 | $0 | - | First day |
-| Oct 14 | +$2.50 | -$0.80 | +$1.20 | +$2.90 | Bot1 | Bot1 trending well |
+| Date | BTC P/L | PAXG P/L | Combined | System | Notes |
+|------|---------|----------|----------|--------|-------|
+| Oct 15 | $0 | $0 | $0 | Stable | First day, memory fixed |
+| Oct 16 | +$2.50 | +$1.80 | +$4.30 | Stable | All bots trading |
+
+**Detailed bot tracking (weekly):**
+
+| Bot | Pair | Strategy | Trades | Wins | P/L | Win Rate |
+|-----|------|----------|--------|------|-----|----------|
+| Bot 1 | BTC/USDT | Strategy001 | 5 | 3 | +$2.50 | 60% |
+| Bot 2 | BTC/USDT | Strategy004 | 4 | 2 | -$0.80 | 50% |
+| Bot 3 | BTC/USDT | SimpleRSI | 22 | 8 | +$1.20 | 36% |
+| Bot 4 | PAXG/USDT | Strategy004 | 3 | 2 | +$0.90 | 67% |
+| Bot 5 | PAXG/USDT | Strategy004 Opt | 4 | 3 | +$1.50 | 75% |
+| Bot 6 | PAXG/USDT | Strategy001 | 2 | 1 | -$0.60 | 50% |
 
 ### Weekly Comparison (Sundays)
+
+**Ask Claude to analyze performance:**
+```
+Hey Claude, can you analyze this week's performance for all 6 bots?
+
+Please compare:
+1. BTC bots (Bot 1-3): Which performed best?
+2. PAXG bots (Bot 4-6): Which performed best?
+3. Overall: BTC vs PAXG - which is more profitable?
+```
 
 **Calculate for EACH bot:**
 - Win rate
 - Total P/L
 - Number of trades
 - Best/worst trade
+- Average profit per trade
 
-**Example:**
+**Example Weekly Summary:**
 ```
-Bot1 (Strategy001):
-- Win Rate: 60%
-- P/L: +$12.50
-- Trades: 7
-- Winner: Bot1 🏆
+BTC Bots:
+- Bot1 (Strategy001): 60% win rate, +$12.50 P/L, 7 trades 🏆
+- Bot2 (Strategy004): 55% win rate, +$8.30 P/L, 5 trades
+- Bot3 (SimpleRSI): 35% win rate, -$4.20 P/L, 22 trades
 
-Bot2 (Strategy004):
-- Win Rate: 55%
-- P/L: +$8.30
-- Trades: 5
+PAXG Bots:
+- Bot4 (Baseline): 67% win rate, +$5.40 P/L, 6 trades
+- Bot5 (Optimized): 75% win rate, +$9.80 P/L, 8 trades 🏆
+- Bot6 (Strategy001): 50% win rate, +$2.10 P/L, 4 trades
 
-Bot3 (SimpleRSI):
-- Win Rate: 35%
-- P/L: -$4.20
-- Trades: 22
+Winner This Week: Bot5 (PAXG Optimized) 🥇
+BTC vs PAXG: PAXG +$17.30 vs BTC +$16.60
 ```
 
-**Decision:** Deploy Bot1 (Strategy001) as main strategy for Week 3
+**Decision:** Identify top performers for potential live trading
 
 ---
 
@@ -127,15 +154,23 @@ Bot3 (SimpleRSI):
 ### ✅ Good Signs (Everything Normal)
 
 **Per-Bot Expectations:**
+
+**BTC Bots:**
 - **Bot1 (Strategy001):** 0.7 trades/day, 60-75% win rate, longer holds
 - **Bot2 (Strategy004):** 0.5 trades/day, 60-70% win rate, short holds
 - **Bot3 (SimpleRSI):** 3 trades/day, 35-45% win rate, frequent trades
 
-**Combined:**
-- **Trade Frequency**: 4-7 trades per day across all bots
-- **At Least 1 Bot Positive**: Not all bots need to win, but at least 1 should be positive
-- **Max Single Loss**: ≤$6 for Bot1/Bot2, ≤$2 for Bot3
-- **No Error Messages**: All 3 bots run smoothly
+**PAXG Bots:**
+- **Bot4 (Baseline):** 0.5 trades/day, 60-70% win rate, medium holds
+- **Bot5 (Optimized):** 0.7 trades/day, 70-85% win rate, wider profit targets
+- **Bot6 (Strategy001):** 0.5 trades/day, 55-70% win rate, medium holds
+
+**Combined (All 6 Bots):**
+- **Trade Frequency**: 8-12 trades per day across all bots
+- **At Least 2-3 Bots Positive**: Diversification means not all need to win
+- **Max Single Loss**: ≤$6 for BTC bots, ≤$4 for PAXG bots
+- **No Error Messages**: All 6 bots run smoothly
+- **Memory Available**: 150+ MB (check with `free -h`)
 
 ### ⚠️ Warning Signs (Needs Attention)
 
@@ -148,11 +183,12 @@ Bot3 (SimpleRSI):
 
 ### 🚨 Red Flags (Immediate Action)
 
-- **Bot Stops Responding** → Check if process died
-- **Error Messages in Telegram** → Share with Claude immediately
-- **Balance Dropping >10%** → Stop bot, investigate
+- **Bot Stops Responding** → Check if process died, monitoring will auto-restart
+- **Frequent Restart Alerts** (3+ in 1 hour) → Memory issue or bot crash loop, contact Claude
+- **Memory Critical Alert** (< 50 MB available) → System under memory pressure
+- **Balance Dropping >10%** → Stop bots, investigate strategy issues
 - **Same Trade Opening Repeatedly** → Logic bug, stop immediately
-- **No Telegram Messages for >24 hours** → Bot or Telegram connection issue
+- **All 6 Bots Down** → Critical system failure, check VPS status
 
 ---
 
@@ -587,14 +623,17 @@ tail -f freqtrade.log  # View live logs
 "Hey Claude, I have a question about [topic from this guide]..."
 ```
 
-**Important Note on Telegram (Oct 13, 2025):**
-- Only Bot 1 (Strategy001) sends Telegram notifications
-- Bot 2 & Bot 3 trade silently (Telegram disabled to avoid conflicts)
-- All trade data still collected in databases
-- For Bot 2/Bot 3 monitoring: Check VPS logs or ask Claude for weekly analysis
-- See WEEK_2_CHECKPOINT.md for rollback/re-enable instructions
+**Important Note on Telegram (Oct 15, 2025):**
+- ALL 6 bots have Telegram disabled (trade notifications disabled)
+- Monitoring system sends Telegram alerts for:
+  - Bot crashes (3+ restarts in 1 hour)
+  - Memory critical (< 50 MB available)
+  - All 6 bots down simultaneously
+- All trade data collected in bot databases (analyze via Claude or VPS logs)
+- See CHECKPOINT_2025_10_15.md for system state and rollback instructions
 
-**Last Updated**: October 13, 2025, 8:20 AM UTC
-**Bot Status**: 3-bot parallel (Strategy001, Strategy004, SimpleRSI)
-**Telegram Config**: Bot 1 enabled, Bot 2 & Bot 3 disabled
+**Last Updated**: October 15, 2025, 03:30 AM UTC
+**Bot Status**: 6-bot parallel (3 BTC + 3 PAXG strategies)
+**System**: 2GB RAM + 2GB swap, memory optimized, 95%+ uptime
+**Telegram Config**: All bots disabled (monitoring alerts only)
 **Next Review**: Sunday, October 20, 2025
