@@ -59,3 +59,24 @@ deploy_full.sh
 deploy_vps_with_password.sh
 install_talib_and_deploy.sh
 deploy_to_hetzner_cloudinit.sh
+
+# Freqtrade databases
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Freqtrade market data
+user_data/data/**/*.feather
+user_data/data/**/*.json
+
+# Freqtrade backtest results
+user_data/backtest_results/
+
+# Freqtrade bot-specific files
+bot*/tradesv3.sqlite*
+bot*/freqtrade.log
+bot*/hyperopt_results/
+
+# Generated reports (created by subagents)
+FIX_IMPLEMENTATION_REPORT.md
+trading_performance_report.md

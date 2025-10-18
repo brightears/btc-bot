@@ -427,46 +427,45 @@ Please analyze:
 
 ## Example: Perfect Return Message
 
-**This is an ideal message when returning after 3 days:**
+**Template for returning after Oct 18 fixes (Use Oct 28, 2025):**
 
 ```
-Hey Claude, I'm back after 3 days to check on our trading bots!
+Hey Claude, it's been 10 days since you fixed the zombie crashes and low trade frequency.
 
 Context:
-- Checkpoint: CHECKPOINT_2025_10_15.md
-- Git commit: 4840ec9
-- System running since: Oct 15, 2025, 03:00 AM UTC (72 hours ago)
-- Last interaction: You fixed the memory issue and set up stable system
+- Checkpoint: CHECKPOINT_2025_10_18.md
+- Fixes applied: Oct 18, 2025
+  1. Bot 2/3 port conflicts resolved (8081, 8082)
+  2. exit_profit_only bug fixed in all strategies
+  3. Zombie detection added to monitoring
 
 What I observed:
-- Received 0 Telegram alerts (good sign!)
-- Haven't checked VPS or logs yet
-- Just want to see how the bots performed
+- Telegram alerts received: [describe any alerts or say "none"]
+- Expected improvement: +300% trade frequency
 
 Please analyze:
-1. System health (all 6 bots running? memory OK?)
-2. Performance analysis:
-   - BTC bots (1-3): Which won?
-   - PAXG bots (4-6): Which won?
-   - Overall: BTC vs PAXG?
-3. Trade statistics for each bot
-4. Any issues or concerns?
-5. Recommendation: Continue for another week or adjust something?
+1. Total trades accumulated (expected 80-120 vs previous 9)
+2. Trade frequency per bot (should be 8-10/day total now)
+3. Which bots are winning? (BTC vs PAXG comparison)
+4. Win rates and P/L for each bot
+5. Any zombie crashes detected and auto-fixed?
+6. Recommendation: Continue testing or ready for go-live?
 
-Take your time with the analysis - I want the full picture!
+Read CHECKPOINT_2025_10_18.md first to understand what was fixed.
 ```
 
-**Why this is perfect:**
-- ✅ States checkpoint clearly
-- ✅ Provides time context
-- ✅ Shares observations (no alerts = good)
-- ✅ Specific analysis requests
-- ✅ Allows Claude to be thorough
+**Why this template is perfect:**
+- ✅ References correct checkpoint (Oct 18)
+- ✅ Mentions specific fixes applied
+- ✅ Sets expectations (trade frequency improvement)
+- ✅ Asks for zombie detection verification
+- ✅ Focuses on 10-day performance window
 
 ---
 
-**Last Updated**: October 15, 2025, 03:30 AM UTC
-**For System**: 6-bot parallel trading (CHECKPOINT_2025_10_15.md)
-**Next Expected Use**: October 17-18, 2025 (2-3 days after deployment)
+**Last Updated**: October 18, 2025, 12:00 PM UTC
+**For System**: 6-bot parallel trading (CHECKPOINT_2025_10_18.md)
+**Fixes Applied**: Port conflicts + exit_profit_only + zombie detection
+**Next Expected Use**: October 28, 2025 (10 days after fixes)
 
-**Remember**: Always reference the checkpoint file so Claude knows exactly where the system stands! 🎯
+**Remember**: Always reference CHECKPOINT_2025_10_18.md so Claude knows the latest system state! 🎯

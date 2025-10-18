@@ -44,8 +44,10 @@ The AI Trading Lab is an advanced, self-learning cryptocurrency trading system t
 - **Virtual Capital**: $18,000 USDT total ($9K BTC + $9K PAXG)
 - **Exchange**: Binance (via CCXT 4.5.7)
 - **Notifications**: All Telegram disabled (analysis via databases)
-- **Memory**: 2GB swap active + optimized configs (380 MB available)
-- **Last Update**: October 15, 2025, 02:10 AM UTC (Memory issue fixed, system stable)
+- **Monitoring**: Zombie detection active, Telegram alerts for crashes
+- **API Ports**: 8080-8085 (unique per bot, fixes applied Oct 18)
+- **Memory**: 2GB swap active + optimized configs (132 MB available)
+- **Last Update**: October 18, 2025, 12:00 PM UTC (Zombie crashes fixed, trade frequency improved)
 
 **Week 1 Performance (Oct 7-13):**
 - **Trades**: 15 total
