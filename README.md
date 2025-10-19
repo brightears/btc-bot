@@ -99,6 +99,42 @@ See [MONITORING_SYSTEM.md](MONITORING_SYSTEM.md) for memory issue resolution det
 
 ---
 
+## Future Vision: Adaptive Self-Optimizing System
+
+**Status:** Research complete | Implementation planned for post-Oct 28 analysis
+
+The system is designed to evolve into a fully autonomous trading laboratory with:
+
+### Key Capabilities (Planned)
+
+- **Auto-Rotation:** 3 live strategies + 7 testing strategies with performance-based promotion/demotion
+- **Strategy Discovery:** Continuous search for new profitable strategies via genetic algorithms or mining
+- **Auto-Pause:** Automatically detect underperforming strategies and pause trading to prevent losses
+- **Self-Improvement:** System learns and adapts without manual intervention
+- **Regime Detection:** Adapt strategies based on market conditions (trending, ranging, volatile, quiet)
+
+### Implementation Timeline
+
+- **Phase 1** (Month 1-2): Auto-pause system - detect and stop degrading strategies
+- **Phase 2** (Month 3-4): Testing pipeline - 3 Live + 7 Testing bots with rotation
+- **Phase 3** (Month 5-6): Strategy discovery - automated mining or genetic algorithms
+- **Phase 4** (Month 7-8): Full automation - remove human-in-the-loop
+
+**Total Development:** 60-85 hours over 6-8 months (incremental)
+**VPS Upgrade:** 4GB → 8GB RAM (~€25/month for 10 bots)
+
+### Why This Matters
+
+- **Capital Protection:** Detect strategy failures within days (not weeks/months)
+- **Continuous R&D:** Test 10-20 new strategies per month automatically
+- **Set & Forget:** Truly autonomous operation with safety guardrails
+- **ROI:** Even 1 strategy at 5-10% annual return pays for infrastructure
+
+**Full Details:** See [ADAPTIVE_TRADING_SYSTEM.md](ADAPTIVE_TRADING_SYSTEM.md)
+**Next Decision Point:** October 28, 2025 (after current 6-bot test analysis)
+
+---
+
 ## Quick Start
 
 ### New VPS Deployment (Hetzner Cloud)
