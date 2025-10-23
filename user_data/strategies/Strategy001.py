@@ -47,7 +47,7 @@ class Strategy001(IStrategy):
 
     # Experimental settings (configuration will overide these if set)
     use_exit_signal = True
-    exit_profit_only = True
+    exit_profit_only = False
     ignore_roi_if_entry_signal = False
 
     # Optional order type mapping
