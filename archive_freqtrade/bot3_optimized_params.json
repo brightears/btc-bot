@@ -1,0 +1,13 @@
+{
+  "rsi_oversold": 35,
+  "rsi_overbought": 65,
+  "stoploss": -0.0242,
+  "minimal_roi": {
+    "0": 0.015,
+    "30": 0.01,
+    "60": 0.005,
+    "120": 0.002
+  },
+  "expected_improvement": 5.329999999999998,
+  "expected_pnl": -4.400000000000002
+}
