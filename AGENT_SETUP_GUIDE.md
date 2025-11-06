@@ -546,7 +546,7 @@ Create report: `research/portfolio_allocation/ALLOCATION_ANALYSIS_YYYY-MM-DD.md`
 
 ---
 
-## 4. BINANCE-BOT-VALIDATOR
+## 4.BINANCE-BOT-VALIDATOR
 
 ### Purpose
 Validate performance claims and expectations for Binance grid bots before deployment.
@@ -555,7 +555,7 @@ Validate performance claims and expectations for Binance grid bots before deploy
 `.claude/agents/binance-bot-validator.md`
 
 ### Agent Prompt (Copy This)
-
+ 
 ```markdown
 # Binance Bot Validator Agent
 
