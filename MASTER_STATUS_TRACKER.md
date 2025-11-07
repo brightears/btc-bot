@@ -99,16 +99,32 @@ All 5 research agents operational:
 
 ---
 
-## CURRENT STATUS (November 6, 2025)
+## CURRENT STATUS (November 7, 2025)
 
-### Project Mode: RESEARCH (Not Trading)
+### Project Mode: RESEARCH + DCA ACCUMULATION
 
-**No Active Bots**: All Freqtrade bots terminated, VPS deleted
+**Active Strategy**: Buy & Hold BTC via monthly DCA (Dollar Cost Averaging)
 
 **Capital Status**:
-- Available: $1,500-2,000 (ready for Binance deployment)
-- Freqtrade losses: -$48.17 (dry-run, lesson learned)
-- Current allocation: 100% cash (awaiting research completion)
+- **Starting Capital**: $31 USDT (Nov 7, 2025)
+- **First BTC Purchase**: 0.0003082 BTC (~$31) ✅ COMPLETED
+- **Monthly Investment**: 3,000 baht (~$100/month)
+- **Target Capital**: $500-800 (6-8 months accumulation)
+- **Current Allocation**: 100% BTC (holding, not trading)
+- **Freqtrade Losses**: -$48.17 (dry-run, lesson learned)
+
+**Investment Strategy (Phased Approach)**:
+- **Phase 1 (Months 1-6)**: Accumulate BTC via monthly purchases
+  - Action: Convert 3,000 baht → BTC every month
+  - Goal: Build $500-800 capital base
+  - Status: ACTIVE (started Nov 7)
+- **Phase 2 (Month 6-8)**: Deploy Grid Bots
+  - Condition 1: Capital reaches $500+ ✅ (when ready)
+  - Condition 2: Market regime shifts to RANGING (waiting)
+  - Action: Split 50/50 (grid bots / BTC hold)
+- **Phase 3 (Month 12+)**: Scale and optimize
+  - Continue monthly $100 split: $50 grids, $50 BTC
+  - Target: $1,200+ total portfolio
 
 **Infrastructure**:
 - Platform: Local Mac + Binance API (read-only)
@@ -117,11 +133,19 @@ All 5 research agents operational:
 - Documentation: 4 comprehensive guides (12,000+ words)
 - Slash Commands: `/research` for automated analysis
 
-**Timeline**:
-- Week 1 (Nov 6-13): Daily market tracking (CURRENT)
-- Week 2 (Nov 13-20): Weekly analysis when market stabilizes
-- Week 3 (Nov 20-27): Deploy if research approves
-- Ongoing: Daily `/research` checks until deployment
+**Timeline (Adjusted for Phased Approach)**:
+- **Months 1-6 (Nov 2025 - Apr 2026)**: DCA accumulation phase
+  - Daily: `/research` market regime tracking
+  - Monthly: Convert 3,000 baht → BTC
+  - Target: $500-800 capital + RANGING market
+- **Month 6-8 (Apr-May 2026)**: Grid bot deployment (if conditions met)
+  - Deploy: $250-400 grid bots
+  - Hold: $250-400 BTC
+  - Split: Future deposits 50/50
+- **Month 12+ (Nov 2026+)**: Mature portfolio
+  - Grid bots: $600+
+  - BTC hold: $600+
+  - Total: $1,200+
 
 ---
 
