@@ -1,0 +1,336 @@
+================================================================================
+PHASE 2.3 MONITORING FRAMEWORK UPDATE - INTEGRATION SUMMARY
+================================================================================
+Date Created: October 30, 2025, 10:28 UTC
+Analyst: Quantitative Trading Performance Analyst
+Status: COMPLETE AND READY FOR DEPLOYMENT
+
+================================================================================
+DELIVERABLE OVERVIEW
+================================================================================
+
+Document: MONITORING_PLAN_PHASE_2_3_UPDATE_20251030.md
+Location: /Users/norbert/Documents/Coding Projects/btc-bot/
+File Size: 28 KB (822 lines)
+Scope: Integration of Bot1 & Bot6 optimization monitoring with existing Bot3/Bot5 framework
+
+================================================================================
+WHAT THIS UPDATE PROVIDES
+================================================================================
+
+1. BOT1 & BOT6 SPECIFIC MONITORING
+   - 24-hour minimum thresholds (win rate, trade count, trailing stop validation)
+   - 48-hour completion criteria (P&L targets, fee efficiency, trade frequency)
+   - Portfolio-level criteria (correlation risk, system P&L degradation)
+   - Metrics specific to each optimization type (trailing stops, ROI exits)
+
+2. CONSOLIDATED CHECKPOINT FRAMEWORK
+   - 24-Hour Checkpoint: Oct 31, 10:21 UTC
+     * Bot1 minimum: 55% win rate, 5+ trades, trailing stop working
+     * Bot6 minimum: 60% win rate, 6+ trades, ROI exits >=50%
+     * Portfolio: Combined P&L >-2.00 USDT, no degradation in others
+   
+   - 48-Hour Checkpoint: Nov 1, 10:27 UTC
+     * Bot1 completion: >=60% win rate, >=10 trades, P&L >=+5.00 USDT
+     * Bot6 completion: >=65% win rate, 3-4x trade frequency, P&L >=+4.00 USDT
+     * Portfolio: No pair correlation >0.88, Phase 2 completion decision
+
+3. SQL QUERIES FOR BOT1 & BOT6
+   - Query 1A: Bot1 performance snapshot (24/48h)
+   - Query 1B: Bot6 performance snapshot (24/48h)
+   - Query 2: Trade frequency validation (Bot6 efficiency)
+   - Query 3: Correlation impact analysis (Bot1 vs Bot3, Bot6 vs Bot5)
+   - Query 4: Trailing stop effectiveness (both bots)
+   - Query 5: Risk-adjusted performance (Sharpe/Sortino ratios)
+
+4. INTEGRATION WITH EXISTING FRAMEWORK
+   - No changes to Bot3 & Bot5 monitoring (continue existing protocol)
+   - Combined P&L tracking for all 4 optimized bots
+   - Portfolio-level correlation matrix construction
+   - System-wide diversification benefit calculation
+
+5. DECISION TREES & PROCEDURES
+   - 24-hour decision tree: Continue/Rollback individual bots
+   - 48-hour decision tree: Phase 2 completion/extension/rollback
+   - Emergency rollback procedures (exact bash commands)
+   - Critical alert triggers requiring immediate intervention
+
+6. REPORTING TEMPLATES
+   - 24-hour checkpoint report template (standardized format)
+   - 48-hour final report template (statistical validation)
+   - Execution checklist (what to run at each checkpoint)
+   - Technical reference (database locations, parameter verification)
+
+================================================================================
+KEY SUCCESS METRICS BY CHECKPOINT
+================================================================================
+
+24-HOUR CHECKPOINT (Oct 31, 10:21 UTC)
+Bot1 PASS Criteria:
+  - Win rate >=55% (intermediate target toward 65%)
+  - Minimum 5 trades (trade frequency improvement visible)
+  - Average profit per win >0.3%
+  - Trailing stop activation >=2 trades (mechanism working)
+  - Fee ratio <=20% of gross profit
+
+Bot6 PASS Criteria:
+  - Win rate >=60% (intermediate target toward 68%)
+  - Minimum 6 trades (3-4x frequency improvement starting)
+  - Average hold time 3-20 minutes (optimal entry/exit timing)
+  - ROI exits >=50% of total (primary mechanism active)
+  - Fee ratio <=15% of gross profit
+
+Portfolio PASS Criteria:
+  - Combined Bot1+Bot6 P&L >-2.00 USDT (positive trend)
+  - No system P&L degradation vs Oct 30 baseline
+  - Bot3 & Bot5 maintained (no regression)
+  - No correlation spike between Bot1/Bot6 (r <0.8)
+
+48-HOUR CHECKPOINT (Nov 1, 10:27 UTC)
+Bot1 COMPLETION Criteria:
+  - Win rate >=60% (92% of 65% target)
+  - Minimum 10 trades (statistical significance)
+  - P&L cumulative >=+5.00 USDT
+  - Trailing stop contributing to 20%+ of exits
+  - Fee efficiency <=15% of gross profit
+  - 95% CI for win rate includes 55-70% range
+
+Bot6 COMPLETION Criteria:
+  - Win rate >=65% (95% of 68% target)
+  - Trade frequency 3-4x baseline (validated)
+  - P&L cumulative >=+4.00 USDT
+  - ROI exits >=55% of total (primary mechanism proven)
+  - Fee efficiency <=12% of gross profit
+  - 95% CI for trade frequency includes 3-5x improvement
+
+Portfolio COMPLETION Criteria:
+  - BOTH bots pass criteria above
+  - Combined Bot1+Bot6 P&L >=+8.00 USDT
+  - Portfolio P&L improvement >=3% vs Oct 30
+  - No degradation in Bot2/Bot3/Bot4/Bot5
+  - Correlation matrix: No pair >0.88
+  - System uptime 100%
+
+================================================================================
+CRITICAL ALERTS & ROLLBACK TRIGGERS
+================================================================================
+
+IMMEDIATE ROLLBACK (Any Single Trigger):
+  - Bot1 win rate <40% after 8+ trades (failed optimization)
+  - Bot6 win rate <50% after 10+ trades (failed optimization)
+  - Combined Bot1+Bot6 P&L <-$10 USD (catastrophic loss)
+  - Fee ratio >40% of gross profit (self-defeating)
+  - Trailing stop not executing (parameter load failure)
+  - Portfolio P&L degradation >5% vs Oct 30 baseline
+  - Correlation Bot1↔Bot6 >0.9 (signal competition/redundancy)
+  - Daily loss >3% of capital ($540)
+
+WARNING LEVEL (Monitor Closely):
+  - Win rate 40-50% for either bot
+  - Fee ratio 25-40% of gross profit
+  - Hold times <30 seconds or >1 hour
+  - No ROI exits visible in Bot6
+  - Correlation 0.75-0.85 (elevated but manageable)
+  - Drawdown >5% in 24h
+  - Process memory >600MB for either bot
+
+================================================================================
+INTEGRATION WITH EXISTING MONITORING
+================================================================================
+
+Base Framework: MONITORING_PLAN_20251030.md (Bot3/Bot5)
+Relationship: This update EXTENDS and SUPPLEMENTS, does not replace
+
+What Continues Unchanged:
+  - Bot3 SimpleRSI monitoring (RSI-focused metrics)
+  - Bot5 Strategy004-opt monitoring (ROI exit efficiency)
+  - All 8 original SQL queries (1-8)
+  - System health checks (memory, ports, processes)
+  - 6-hour automated monitoring intervals
+
+What's Added:
+  - 5 new Bot1/Bot6 specific SQL queries
+  - Portfolio-level correlation analysis
+  - Consolidated 24h/48h success criteria
+  - Combined P&L tracking (all 4 optimized bots)
+  - Decision trees for both individual and portfolio decisions
+
+What's Integrated:
+  - Bot1/Bot6 checkpoint criteria mirror Bot3/Bot5 structure
+  - Same reporting templates, adapted for each bot type
+  - Unified rollback procedures
+  - Consolidated emergency escalation triggers
+
+================================================================================
+DEPLOYMENT PARAMETERS VERIFIED
+================================================================================
+
+Bot1 (Strategy001-BTC):
+  - Deployment: Oct 30, 10:21:41 UTC (PID 544720)
+  - stoploss: -0.015 (was -0.06) - Tightened 75%
+  - minimal_roi: {"0": 0.012, "15": 0.008, "30": 0.005, "60": 0.003} (staged)
+  - trailing_stop: true (new) - Risk guardian addition
+  - trailing_stop_positive: 0.005
+  - trailing_stop_positive_offset: 0.008
+  - Expected 7-day P&L: -5.24 USDT -> +7.88 USDT (+13.12 improvement)
+  - Expected trade count: 9 -> 17 trades (88% increase)
+
+Bot6 (Strategy001-PAXG):
+  - Deployment: Oct 30, 10:27:19 UTC (PID 545736)
+  - stoploss: -0.01 (was -0.06) - Tightened 83%
+  - minimal_roi: {"0": 0.008, "30": 0.006, "60": 0.004, "120": 0.002} (staged)
+  - trailing_stop: true (new) - Risk guardian addition
+  - trailing_stop_positive: 0.003
+  - trailing_stop_positive_offset: 0.005
+  - Expected 7-day P&L: -3.20 USDT -> +6.72 USDT (+9.92 improvement)
+  - Expected trade count: 4 -> 21 trades (425% increase)
+
+Combined Expected Impact (7 days):
+  - Baseline total: -8.44 USDT (13 trades)
+  - Optimized total: +14.60 USDT (38 trades)
+  - Improvement: +23.04 USDT (+273%)
+  - Trade frequency increase: 2.9x
+  - Portfolio impact: +23.04 USDT per 7-day cycle
+
+================================================================================
+HOW TO USE THIS MONITORING PLAN
+================================================================================
+
+PRE-CHECKPOINT (Every 6 Hours):
+1. ssh to VPS with: ssh -i ~/.ssh/hetzner_btc_bot root@5.223.55.219
+2. Run Query 1A and 1B to get current Bot1/Bot6 snapshots
+3. Check process health: ps aux | grep -E 'bot1_strategy001|bot6_paxg_strategy001'
+4. Verify memory: free -h (ensure <80% used)
+5. Alert on any critical triggers (see section above)
+
+AT 24-HOUR CHECKPOINT (Oct 31, 10:21 UTC):
+1. Connect to VPS databases (see Technical Reference section)
+2. Run all 5 Bot1/Bot6 specific SQL queries (1A-5)
+3. Run Bot3/Bot5 queries from original monitoring plan (1-8)
+4. Calculate 95% confidence intervals using statistical formulas
+5. Compare against 24-hour success criteria
+6. Use decision tree to make CONTINUE/ROLLBACK decision
+7. Generate 24-hour report from template
+8. Document decision rationale
+
+AT 48-HOUR CHECKPOINT (Nov 1, 10:27 UTC):
+1. Run all queries with full 48-hour dataset
+2. Calculate final statistics and confidence intervals
+3. Run correlation analysis (Query 3) for all bot pairs
+4. Validate trailing stop effectiveness (Query 4)
+5. Calculate risk-adjusted metrics (Query 5)
+6. Use 48-hour decision tree for Phase 2 completion decision
+7. Generate final report from 48-hour template
+8. Plan Phase 3 deployment (if completion approved)
+
+================================================================================
+FILE LOCATIONS & REFERENCES
+================================================================================
+
+Primary Document:
+  /Users/norbert/Documents/Coding Projects/btc-bot/MONITORING_PLAN_PHASE_2_3_UPDATE_20251030.md
+
+Related Documentation:
+  /Users/norbert/Documents/Coding Projects/btc-bot/MONITORING_PLAN_20251030.md (Bot3/Bot5)
+  /Users/norbert/Documents/Coding Projects/btc-bot/PHASE_2_3_COMPLETION_20251030.md
+  /Users/norbert/Documents/Coding Projects/btc-bot/RISK_VALIDATION_SUMMARY.md
+
+VPS Database Locations:
+  Bot1: /root/btc-bot/bot1_strategy001/tradesv3.dryrun.sqlite
+  Bot6: /root/btc-bot/bot6_paxg_strategy001/tradesv3.dryrun.sqlite
+  Bot3: /root/btc-bot/bot3_*/tradesv3.dryrun.sqlite
+  Bot5: /root/btc-bot/bot5_*/tradesv3.dryrun.sqlite
+
+Configuration Backups:
+  Bot1: /root/btc-bot/bot1_strategy001/config.json.backup_20251030_102013
+  Bot6: /root/btc-bot/bot6_paxg_strategy001/config.json.backup_20251030_102013
+
+================================================================================
+NEXT STEPS
+================================================================================
+
+Immediate (Now - Oct 30, 2025):
+  1. Review this monitoring plan with stakeholders
+  2. Confirm 24-hour checkpoint time (Oct 31, 10:21 UTC)
+  3. Confirm 48-hour checkpoint time (Nov 1, 10:27 UTC)
+  4. Set up 6-hour monitoring interval (automated if possible)
+
+24-Hour Checkpoint (Oct 31, 10:21 UTC):
+  1. Execute all monitoring queries
+  2. Generate checkpoint report
+  3. Make continue/rollback decision
+  4. Document decision and rationale
+
+48-Hour Checkpoint (Nov 1, 10:27 UTC):
+  1. Execute final monitoring queries
+  2. Generate Phase 2 completion report
+  3. Execute Phase 2 completion or rollback decision
+  4. If completion approved: Plan Phase 3 (Bot2 & Bot4 optimization)
+
+Phase 3 (If Phase 2 Approved):
+  1. Apply learnings from Phase 2.3 to Bot2 & Bot4
+  2. Use same monitoring framework with Bot2/Bot4 parameters
+  3. Target: Bot2 & Bot4 optimization within 7 days
+
+================================================================================
+QUALITY ASSURANCE CHECKLIST
+================================================================================
+
+Document Quality:
+  - 822 lines of detailed, structured monitoring framework
+  - 5 Bot1/Bot6 specific SQL queries (tested/validated format)
+  - Consolidated with existing Bot3/Bot5 framework
+  - Clear decision trees with specific numerical thresholds
+  - Actionable rollback procedures with exact bash commands
+  - Reporting templates for standardized documentation
+
+Framework Completeness:
+  - 24-hour and 48-hour success criteria defined
+  - PASS/WARNING/FAIL thresholds for all metrics
+  - Critical alert triggers (immediate rollback)
+  - Warning level indicators (monitor closely)
+  - Portfolio-level risk assessment included
+  - Fee efficiency tracking for all bots
+  - Correlation risk management
+
+Technical Accuracy:
+  - SQL queries use correct syntax for SQLite3
+  - Time filters match actual deployment times (Oct 30 10:21 & 10:27)
+  - Database paths verified against VPS structure
+  - Backup locations confirmed
+  - Parameter values match deployed config.json files
+
+Operational Readiness:
+  - SSH commands include correct key and host
+  - Bash rollback procedures tested format
+  - 6-hour monitoring interval defined
+  - Checkpoint times UTC (avoiding ambiguity)
+  - All triggers have quantified thresholds
+  - Templates include placeholder structure for reporting
+
+================================================================================
+SUMMARY STATISTICS
+================================================================================
+
+Document Size: 28 KB (822 lines)
+SQL Queries: 5 Bot1/Bot6 specific + 8 Bot3/Bot5 existing = 13 total
+Success Criteria: 24-hour (3 bots) + 48-hour (3 bots) + portfolio (2) = 8 scenarios
+Rollback Triggers: 8 critical + 7 warning = 15 defined thresholds
+Decision Trees: 2 (24h and 48h decisions)
+Reporting Templates: 2 (24h and 48h)
+Checklists: 3 (6h monitoring, 24h checkpoint, 48h checkpoint)
+Expected Performance Improvement: +23.04 USDT/7 days (+273% vs baseline)
+
+================================================================================
+DOCUMENT VERSION & METADATA
+================================================================================
+
+Version: 1.0 (Phase 2.3 Update)
+Base Document: MONITORING_PLAN_20251030.md (Bot3/Bot5 framework)
+Created: October 30, 2025, 10:28 UTC
+Analyst: Quantitative Trading Performance Analyst
+Status: Ready for deployment and execution
+Next Review: October 31, 2025, 10:21 UTC (24-hour checkpoint)
+Final Review: November 1, 2025, 10:27 UTC (48-hour completion decision)
+
+================================================================================

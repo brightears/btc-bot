@@ -1,0 +1,94 @@
+{
+  "timestamp": "2025-11-04T23:27:24.411561",
+  "analysis_period": "October 5 - November 4, 2024",
+  "btc_usdt": {
+    "regime": {
+      "asset": "BTC",
+      "volatility_regime": "MEDIUM",
+      "trend_regime": "DOWNTREND",
+      "volume_profile": "NORMAL_VOLUME",
+      "metrics": {
+        "daily_volatility": 2.83,
+        "annualized_volatility": 54.0,
+        "intraday_range": 5.32,
+        "atr_percentage": 4.87,
+        "24h_change": -3.9,
+        "7d_change": -9.3,
+        "30d_change": 0,
+        "24h_volume_usd": 86915226323.13
+      }
+    },
+    "recommendations": {
+      "suitable_strategies": [
+        "Trend Following (Primary)",
+        "Trend Following",
+        "Breakout Trading",
+        "Momentum Trading",
+        "RSI-based strategies"
+      ],
+      "roi_targets": [
+        "1.0-2.0%",
+        "2.0-3.0%"
+      ],
+      "timeframes": [
+        "5m",
+        "15m",
+        "30m"
+      ],
+      "risk_parameters": {
+        "stop_loss": "2-3%",
+        "position_size": "Moderate",
+        "leverage": "Conservative (1-2x)"
+      }
+    }
+  },
+  "paxg_usdt": {
+    "regime": {
+      "asset": "PAXG",
+      "volatility_regime": "LOW",
+      "trend_regime": "WEAK_TREND",
+      "volume_profile": "NORMAL_VOLUME",
+      "metrics": {
+        "daily_volatility": 0.17,
+        "annualized_volatility": 3.29,
+        "intraday_range": 1.4,
+        "atr_percentage": 1.4,
+        "24h_change": 1.2,
+        "7d_change": 0,
+        "30d_change": 3.15,
+        "24h_volume_usd": 202430000
+      }
+    },
+    "recommendations": {
+      "suitable_strategies": [
+        "Trend Following (Primary)",
+        "Mean Reversion",
+        "Range Trading",
+        "Grid Trading",
+        "Bollinger Band Mean Reversion"
+      ],
+      "roi_targets": [
+        "0.3-0.5%",
+        "0.5-1.0%"
+      ],
+      "timeframes": [
+        "15m",
+        "30m",
+        "1h"
+      ],
+      "risk_parameters": {
+        "stop_loss": "1-2%",
+        "position_size": "Higher (low risk environment)",
+        "leverage": "Low to moderate (1-3x)"
+      }
+    }
+  },
+  "overall_market_assessment": {
+    "trading_suitability": "ACTIVE",
+    "warnings": [],
+    "key_observations": [
+      "BTC in significant downtrend (-9.3% over 7d)",
+      "PAXG showing low volatility - good for range trading"
+    ]
+  }
+}
